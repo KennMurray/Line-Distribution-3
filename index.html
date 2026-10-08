@@ -1,8 +1,10 @@
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
+
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0"
@@ -58,13 +60,86 @@
       width: 100%;
       max-width: 960px;
       aspect-ratio: 16 / 9;
+
       background: #050509;
+
       border: 2px solid #ff80c8;
       border-radius: 12px;
+
       margin: 30px auto;
+
       display: flex;
       align-items: center;
       justify-content: center;
+
+      overflow: hidden;
+    }
+
+
+    /* ==========================================
+       VISUAL / CLASSIC LAYOUT SWITCHING
+       ========================================== */
+
+    .distribution-layout {
+      display: none;
+
+      width: 100%;
+      height: 100%;
+
+      min-width: 0;
+      min-height: 0;
+
+      padding: 24px;
+
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Show Visual layout when selected */
+
+    #studio-screen[data-visual-mode="visual"]
+    #visual-layout {
+      display: flex;
+    }
+
+    /* Show Classic layout when selected */
+
+    #studio-screen[data-visual-mode="classic"]
+    #classic-layout {
+      display: flex;
+    }
+
+
+    /* ==========================================
+       TEMPORARY PREVIEW PLACEHOLDERS
+       ========================================== */
+
+    .distribution-placeholder {
+      color: #a5a5b5;
+      text-align: center;
+    }
+
+    .distribution-placeholder h2 {
+      color: #ff80c8;
+
+      font-size: clamp(14px, 2vw, 22px);
+      margin-bottom: 12px;
+    }
+
+    .distribution-placeholder p {
+      color: #a5a5b5;
+      font-size: clamp(11px, 1.4vw, 14px);
+    }
+
+
+    /* ==========================================
+       PREPARED MEMBER CONTAINERS
+       ========================================== */
+
+    #visual-members,
+    #classic-members {
+      width: 100%;
     }
 
 
@@ -76,9 +151,12 @@
       display: none;
       position: fixed;
       inset: 0;
+
       background: rgba(0, 0, 0, 0.75);
+
       align-items: center;
       justify-content: center;
+
       z-index: 100;
       padding: 20px;
     }
@@ -89,15 +167,22 @@
 
     .modal-content {
       position: relative;
+
       width: 100%;
       max-width: 450px;
       max-height: 90vh;
+
       overflow-y: auto;
+
       background: #1c1c28;
+
       border: 1px solid #ff80c8;
       border-radius: 16px;
+
       padding: 28px;
+
       text-align: left;
+
       box-shadow: 0 0 30px #ff80c833;
     }
 
@@ -108,11 +193,15 @@
 
     .close-modal {
       position: absolute;
+
       top: 12px;
       right: 12px;
+
       background: transparent;
+
       color: white;
       font-size: 24px;
+
       padding: 4px 10px;
     }
 
@@ -139,8 +228,10 @@
 
     .member-card {
       background: #1c1c28;
+
       border-radius: 12px;
       padding: 15px;
+
       text-align: center;
       min-width: 130px;
     }
@@ -148,10 +239,14 @@
     .member-card img {
       width: 80px;
       height: 80px;
+
       object-fit: cover;
       border-radius: 50%;
+
       border: 3px solid var(--member-color);
-      box-shadow: 0 0 15px var(--member-color);
+
+      box-shadow:
+        0 0 15px var(--member-color);
     }
 
     .member-card p {
@@ -166,29 +261,42 @@
 
     .shortcut-input {
       width: 100%;
+
       padding: 12px;
+
       background: #292938;
+
       border: 1px solid #454555;
       border-radius: 8px;
+
       color: white;
+
       cursor: pointer;
+
       text-align: center;
       font-weight: bold;
+
       margin-top: 8px;
     }
 
     .shortcut-input:focus {
       outline: none;
+
       border-color: #ff80c8;
+
       box-shadow: 0 0 10px #ff80c855;
     }
 
     .member-shortcut {
       display: inline-block;
+
       padding: 5px 12px;
+
       border-radius: 6px;
+
       background: #292938;
       color: white;
+
       font-size: 13px;
       font-weight: bold;
     }
@@ -299,8 +407,6 @@
             </div>
 
 
-            <!-- VISUAL DESCRIPTION -->
-
             <p class="mode-description">
               A modern visual layout with member
               photos, colorful highlights and timers.
@@ -365,8 +471,6 @@
             </div>
 
 
-            <!-- CLASSIC DESCRIPTION -->
-
             <p class="mode-description">
               A traditional ranking list with
               member names, progress bars and timers.
@@ -379,10 +483,7 @@
       </fieldset>
 
 
-
-      <!-- ============================
-           CONTINUE BUTTON
-           ============================ -->
+      <!-- CONTINUE BUTTON -->
 
       <div class="welcome-actions">
 
@@ -397,7 +498,6 @@
       </div>
 
     </form>
-
 
 
     <!-- WELCOME FOOTER -->
@@ -425,9 +525,7 @@
   >
 
 
-    <!-- ======================================
-         GENERATOR HEADER
-         ====================================== -->
+    <!-- GENERATOR HEADER -->
 
     <header class="studio-header">
 
@@ -444,14 +542,110 @@
 
 
     <!-- ======================================
-         VIDEO PREVIEW
+         VIDEO PREVIEW — 16:9
          ====================================== -->
 
-    <div class="preview">
+    <div
+      class="preview"
+      id="distribution-preview"
+    >
 
-      <h2>
-        16:9 VIDEO PREVIEW
-      </h2>
+
+      <!-- ==================================
+           VISUAL LINE DISTRIBUTION
+           ================================== -->
+
+      <div
+        id="visual-layout"
+        class="distribution-layout visual-layout"
+        aria-label="Visual Line Distribution Preview"
+      >
+
+        <!--
+          Future Visual layout:
+          - Circular member photos
+          - Circular percentage progress rings
+          - Member names
+          - Seconds and percentages
+          - Active singer highlight
+          - White crown with member-color glow
+            above the winner's ring
+        -->
+
+        <div
+          id="visual-members"
+          class="visual-members"
+        ></div>
+
+
+        <!-- EMPTY VISUAL STATE -->
+
+        <div
+          id="visual-empty-state"
+          class="distribution-placeholder"
+        >
+
+          <h2>
+            VISUAL LINE DISTRIBUTION
+          </h2>
+
+          <p>
+            Add members to build your visual distribution.
+          </p>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- ==================================
+           CLASSIC LINE DISTRIBUTION
+           ================================== -->
+
+      <div
+        id="classic-layout"
+        class="distribution-layout classic-layout"
+        aria-label="Classic Line Distribution Preview"
+      >
+
+        <!--
+          Future Classic layout:
+          - Vertical member ranking list
+          - Member photos and names
+          - Seconds counters
+          - Percentage counters
+          - Horizontal progress bars
+          - Automatic ranking
+          - White crown with member-color glow
+            next to the winner's position
+        -->
+
+        <div
+          id="classic-members"
+          class="classic-members"
+        ></div>
+
+
+        <!-- EMPTY CLASSIC STATE -->
+
+        <div
+          id="classic-empty-state"
+          class="distribution-placeholder"
+        >
+
+          <h2>
+            CLASSIC LINE DISTRIBUTION
+          </h2>
+
+          <p>
+            Add members to build your classic ranking.
+          </p>
+
+        </div>
+
+      </div>
+
 
     </div>
 
@@ -730,7 +924,6 @@
             </button>
 
           </div>
-
 
         </form>
 
