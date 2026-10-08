@@ -1,5 +1,4 @@
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,8 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>Line Distribution Studio</title>
-
-  <!-- External CSS -->
   <link rel="stylesheet" href="style.css">
 
   <style>
@@ -28,6 +25,7 @@
       width: 100%;
       max-width: 960px;
       aspect-ratio: 16 / 9;
+      box-sizing: border-box;
       background: #050509;
       border: 2px solid #ff80c8;
       border-radius: 12px;
@@ -35,7 +33,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      box-sizing: border-box;
     }
 
     button {
@@ -46,24 +43,98 @@
       cursor: pointer;
       font-weight: bold;
     }
+
+    .member-list {
+      max-width: 450px;
+      margin: 20px auto;
+      text-align: left;
+    }
+
+    .member-list h2 {
+      color: #ff80c8;
+    }
+
+    .member-list-items {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .member-list-empty {
+      color: #a5a5b5;
+      font-size: 14px;
+    }
   </style>
 </head>
 
 <body>
 
   <h1>LINE DISTRIBUTION STUDIO</h1>
-
   <p>Create your own K-pop line distribution!</p>
 
+  <!-- VIDEO PREVIEW -->
   <div class="preview">
     <h2>16:9 VIDEO PREVIEW</h2>
   </div>
 
-  <button onclick="alert('It works!')">
-    Test Generator
-  </button>
+  <!-- MEMBER SETUP -->
+  <section class="member-setup">
+    <h2>Member Setup</h2>
 
-  <!-- External JavaScript -->
+    <form id="member-form">
+
+      <label for="member-name">
+        Member Name
+      </label>
+      <input
+        type="text"
+        id="member-name"
+        placeholder="e.g. Ahyeon"
+        maxlength="30"
+        required
+      >
+
+      <label for="member-image">
+        Member Photo
+      </label>
+      <input
+        type="file"
+        id="member-image"
+        accept="image/*"
+      >
+
+      <label for="member-color">
+        Member Color
+      </label>
+      <input
+        type="color"
+        id="member-color"
+        value="#ff80c8"
+      >
+
+      <div style="margin-top: 24px;">
+        <button type="submit" class="save-member">
+          Add Member
+        </button>
+      </div>
+
+    </form>
+  </section>
+
+  <!-- MEMBER LIST -->
+  <section class="member-list">
+    <h2>Members</h2>
+
+    <p class="member-list-empty">
+      No members added yet.
+    </p>
+
+    <div
+      id="member-list-items"
+      class="member-list-items">
+    </div>
+  </section>
+
   <script src="script.js"></script>
 
 </body>
