@@ -1,0 +1,88 @@
+
+:root {
+  --background: #101018;
+  --panel: #1c1c28;
+  --input: #292938;
+  --accent: #ff80c8;
+  --text: #ffffff;
+  --muted: #a5a5b5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--text);
+  font-family: Arial, sans-serif;
+}
+
+.member-setup {
+  background: var(--panel);
+  border: 1px solid #393949;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 450px;
+  margin: 30px auto;
+  text-align: left;
+}
+
+.member-setup h2 {
+  color: var(--accent);
+  margin-top: 0;
+}
+
+.member-setup label {
+  display: block;
+  margin: 16px 0 8px;
+  font-size: 14px;
+}
+
+.member-setup input[type="text"] {
+  width: 100%;
+  padding: 12px;
+  background: var(--input);
+  color: white;
+  border: 1px solid #454555;
+  border-radius: 8px;
+}
+
+.member-setup input[type="color"] {
+  width: 48px;
+  height: 40px;
+  padding: 2px;
+  border: 1px solid #454555;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.member-photo {
+  --member-color: #ff80c8;
+
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--member-color);
+
+  box-shadow:
+    0 0 8px var(--member-color),
+    0 0 20px var(--member-color);
+}
+
+.member-name {
+  color: var(--member-color, #ff80c8);
+  font-weight: bold;
+}
+
+.save-member {
+  background: var(--accent);
+  color: #101018;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  cursor: pointer;
+}
