@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  // ---------- KEYBOARD SHORTCUT SETUP ----------
+  // ---------- MEMBER KEYBOARD SHORTCUTS ----------
 
   shortcutInput.addEventListener("keydown", function (event) {
     event.preventDefault();
@@ -131,10 +131,17 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
+    // Each member has a place for future results.
+
     const member = {
       name: name,
       color: color,
-      shortcut: selectedShortcut
+      shortcut: selectedShortcut,
+
+      // Recording data — currently empty.
+      lines: [],
+      totalSeconds: 0,
+      percentage: 0
     };
 
     members.push(member);
@@ -180,8 +187,6 @@ document.addEventListener("DOMContentLoaded", function () {
   // SECTION 2 — MUSIC PLAYER
   // ==========================================
 
-  // ---------- MUSIC PLAYER ELEMENTS ----------
-
   const musicFile = document.getElementById("music-file");
   const musicAudio = document.getElementById("music-audio");
 
@@ -201,7 +206,7 @@ document.addEventListener("DOMContentLoaded", function () {
   let currentMusicURL = null;
   let musicIsReady = false;
 
-  // ---------- MUSIC PLAYER ERROR MESSAGES ----------
+  // ---------- MUSIC ERROR MESSAGES ----------
 
   function showMusicError(message) {
     musicError.textContent = message;
@@ -213,7 +218,7 @@ document.addEventListener("DOMContentLoaded", function () {
     musicError.hidden = true;
   }
 
-  // ---------- FORMAT SONG TIME ----------
+  // ---------- FORMAT TIME ----------
 
   function formatMusicTime(seconds) {
     if (!Number.isFinite(seconds) || seconds < 0) {
@@ -239,7 +244,7 @@ document.addEventListener("DOMContentLoaded", function () {
     return minutes + ":" + paddedSeconds;
   }
 
-  // ---------- ENABLE / DISABLE MUSIC CONTROLS ----------
+  // ---------- ENABLE MUSIC CONTROLS ----------
 
   function setMusicControlsEnabled(enabled) {
     musicIsReady = enabled;
@@ -249,7 +254,7 @@ document.addEventListener("DOMContentLoaded", function () {
     musicSeek.disabled = !enabled;
   }
 
-  // ---------- UPDATE PLAY BUTTON ----------
+  // ---------- PLAY BUTTON ----------
 
   function updateMusicPlayButton() {
     if (musicAudio.paused) {
@@ -259,7 +264,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // ---------- UPDATE SONG PROGRESS ----------
+  // ---------- SONG PROGRESS ----------
 
   function updateMusicProgress() {
     const currentTime = musicAudio.currentTime;
@@ -278,7 +283,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // ---------- INITIAL MUSIC PLAYER STATE ----------
+  // ---------- INITIAL STATE ----------
 
   setMusicControlsEnabled(false);
 
@@ -287,7 +292,16 @@ document.addEventListener("DOMContentLoaded", function () {
   updateMusicPlayButton();
   updateMusicProgress();
 
-  // ---------- UPLOAD MP3 FILE ----------
+  // Change button label without editing index.html.
+
+  musicRestart.textContent = "↺ Restart All (~)";
+
+  musicRestart.setAttribute(
+    "aria-keyshortcuts",
+    "Backquote"
+  );
+
+  // ---------- LOAD MP3 ----------
 
   musicFile.addEventListener("change", function () {
     clearMusicError();
@@ -298,10 +312,6 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    // Accept MP3 extension only.
-    // The browser will also check whether
-    // the selected file can actually play.
-
     const isMP3 = /\.mp3$/i.test(file.name);
 
     if (!isMP3) {
@@ -309,8 +319,6 @@ document.addEventListener("DOMContentLoaded", function () {
       musicFile.value = "";
       return;
     }
-
-    // Pause previous song before switching.
 
     musicAudio.pause();
 
@@ -320,8 +328,6 @@ document.addEventListener("DOMContentLoaded", function () {
     musicCurrentTime.textContent = "0:00";
     musicDuration.textContent = "0:00";
 
-    // Create local URL for selected song.
-
     const newMusicURL = URL.createObjectURL(file);
     const previousMusicURL = currentMusicURL;
 
@@ -330,24 +336,23 @@ document.addEventListener("DOMContentLoaded", function () {
     musicAudio.src = newMusicURL;
     musicAudio.load();
 
-    // Release previous audio file from memory.
-
     if (previousMusicURL) {
       URL.revokeObjectURL(previousMusicURL);
     }
 
-    // Display song filename without .mp3.
-
     musicTrackName.textContent = file.name.replace(/\.mp3$/i, "");
-
-    // Allow selecting the same file again.
 
     musicFile.value = "";
 
     updateMusicPlayButton();
+
+    // A new song starts with clean recording results.
+    // The member list stays unchanged.
+
+    resetMemberResults();
   });
 
-  // ---------- SONG METADATA LOADED ----------
+  // ---------- METADATA LOADED ----------
 
   musicAudio.addEventListener("loadedmetadata", function () {
     const duration = musicAudio.duration;
@@ -385,18 +390,7 @@ document.addEventListener("DOMContentLoaded", function () {
     updateMusicPlayButton();
   });
 
-  // ---------- RESTART SONG ----------
-
-  musicRestart.addEventListener("click", function () {
-    if (!musicIsReady) {
-      return;
-    }
-
-    musicAudio.currentTime = 0;
-    updateMusicProgress();
-  });
-
-  // ---------- SEEK THROUGH SONG ----------
+  // ---------- SEEK ----------
 
   musicSeek.addEventListener("input", function () {
     if (!musicIsReady) {
@@ -407,13 +401,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (Number.isFinite(duration) && duration > 0) {
       const percentage = Number(musicSeek.value) / 100;
+
       musicAudio.currentTime = percentage * duration;
 
       updateMusicProgress();
     }
   });
 
-  // ---------- MUSIC VOLUME ----------
+  // ---------- VOLUME ----------
 
   musicVolume.addEventListener("input", function () {
     musicAudio.volume = Number(musicVolume.value);
@@ -435,7 +430,7 @@ document.addEventListener("DOMContentLoaded", function () {
     updateMusicProgress();
   });
 
-  // ---------- AUDIO LOADING ERROR ----------
+  // ---------- AUDIO ERROR ----------
 
   musicAudio.addEventListener("error", function () {
     setMusicControlsEnabled(false);
@@ -447,7 +442,7 @@ document.addEventListener("DOMContentLoaded", function () {
     );
   });
 
-  // ---------- CLEAN UP AUDIO URL ----------
+  // ---------- CLEAN UP ----------
 
   window.addEventListener("pagehide", function () {
     if (currentMusicURL) {
@@ -458,8 +453,143 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   // ==========================================
-  // SECTION 3 — RECORDING SYSTEM
-  // Coming in the next development stage.
+  // SECTION 3 — RECORDING DATA
   // ==========================================
+
+  // This array will hold recorded line intervals
+  // when we add the recording system.
+
+  let recordedLines = [];
+
+  // ---------- RESET MEMBER RESULTS ----------
+
+  function resetMemberResults() {
+
+    // Clear all recorded line intervals.
+
+    recordedLines = [];
+
+    // Reset each member's future recording data.
+    // Do not remove members or change their settings.
+
+    members.forEach(function (member) {
+      member.lines = [];
+      member.totalSeconds = 0;
+      member.percentage = 0;
+    });
+
+    // In the future we will also update:
+    // - member progress bars
+    // - seconds counters
+    // - percentage counters
+    // - "Now Singing" indicator
+    // - recording timeline
+  }
+
+
+  // ==========================================
+  // SECTION 4 — RESTART ALL
+  // ==========================================
+
+  function restartAll() {
+
+    if (!musicIsReady) {
+      return;
+    }
+
+    // Stop the song.
+
+    musicAudio.pause();
+
+    // Rewind to the beginning.
+
+    musicAudio.currentTime = 0;
+
+    // Clear all member recording results.
+
+    resetMemberResults();
+
+    // Update the Music Player.
+
+    updateMusicProgress();
+    updateMusicPlayButton();
+
+    // Keep:
+    // - loaded MP3
+    // - member names
+    // - member photos
+    // - member colors
+    // - member keyboard shortcuts
+  }
+
+  // ---------- RESTART BUTTON ----------
+
+  musicRestart.addEventListener("click", restartAll);
+
+  // ---------- RESTART KEYBOARD SHORTCUT ----------
+
+  document.addEventListener("keydown", function (event) {
+
+    // Do not restart repeatedly while holding the key.
+
+    if (event.repeat) {
+      return;
+    }
+
+    // Do not trigger shortcuts while using
+    // Ctrl, Alt, or Command.
+
+    if (event.ctrlKey || event.altKey || event.metaKey) {
+      return;
+    }
+
+    // Do not restart when the Add Member window is open.
+
+    if (modal.classList.contains("open")) {
+      return;
+    }
+
+    // Do not trigger shortcuts while typing
+    // or using form controls.
+
+    const target = event.target;
+
+    if (
+      target instanceof Element &&
+      (
+        target.closest("input, textarea, select") ||
+        target.isContentEditable
+      )
+    ) {
+      return;
+    }
+
+    // Backquote is the physical key normally
+    // found directly below Esc on US keyboards.
+    // Also accept ~ if produced by another layout.
+
+    const isRestartKey =
+      event.code === "Backquote" ||
+      event.key === "~";
+
+    if (!isRestartKey) {
+      return;
+    }
+
+    event.preventDefault();
+
+    restartAll();
+  });
+
+
+  // ==========================================
+  // SECTION 5 — FUTURE RECORDING SYSTEM
+  // ==========================================
+
+  // Next stage:
+  // - Start Recording button
+  // - member line recording with keybinds
+  // - calculate seconds and percentages
+  // - live line distribution preview
 
 });
