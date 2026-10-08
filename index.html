@@ -4,7 +4,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>Line Distribution Studio</title>
   <link rel="stylesheet" href="style.css">
 
@@ -25,7 +24,6 @@
       width: 100%;
       max-width: 960px;
       aspect-ratio: 16 / 9;
-      box-sizing: border-box;
       background: #050509;
       border: 2px solid #ff80c8;
       border-radius: 12px;
@@ -44,9 +42,53 @@
       font-weight: bold;
     }
 
-    .member-list {
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal-content {
+      position: relative;
+      width: 100%;
       max-width: 450px;
-      margin: 20px auto;
+      max-height: 90vh;
+      overflow-y: auto;
+      background: #1c1c28;
+      border: 1px solid #ff80c8;
+      border-radius: 16px;
+      padding: 28px;
+      text-align: left;
+      box-shadow: 0 0 30px #ff80c833;
+    }
+
+    .modal-content h2 {
+      color: #ff80c8;
+      margin-top: 0;
+    }
+
+    .close-modal {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: transparent;
+      color: white;
+      font-size: 24px;
+      padding: 4px 10px;
+    }
+
+    .member-list {
+      max-width: 960px;
+      margin: 30px auto;
       text-align: left;
     }
 
@@ -54,15 +96,32 @@
       color: #ff80c8;
     }
 
-    .member-list-items {
+    #member-list-items {
       display: flex;
-      flex-direction: column;
-      gap: 12px;
+      flex-wrap: wrap;
+      gap: 15px;
     }
 
-    .member-list-empty {
-      color: #a5a5b5;
-      font-size: 14px;
+    .member-card {
+      background: #1c1c28;
+      border-radius: 12px;
+      padding: 15px;
+      text-align: center;
+      min-width: 130px;
+    }
+
+    .member-card img {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 3px solid var(--member-color);
+      box-shadow: 0 0 15px var(--member-color);
+    }
+
+    .member-card p {
+      color: var(--member-color);
+      font-weight: bold;
     }
   </style>
 </head>
@@ -72,68 +131,70 @@
   <h1>LINE DISTRIBUTION STUDIO</h1>
   <p>Create your own K-pop line distribution!</p>
 
-  <!-- VIDEO PREVIEW -->
   <div class="preview">
     <h2>16:9 VIDEO PREVIEW</h2>
   </div>
 
-  <!-- MEMBER SETUP -->
-  <section class="member-setup">
-    <h2>Member Setup</h2>
+  <button id="open-member-modal">
+    + Add Member
+  </button>
 
-    <form id="member-form">
-
-      <label for="member-name">
-        Member Name
-      </label>
-      <input
-        type="text"
-        id="member-name"
-        placeholder="e.g. Ahyeon"
-        maxlength="30"
-        required
-      >
-
-      <label for="member-image">
-        Member Photo
-      </label>
-      <input
-        type="file"
-        id="member-image"
-        accept="image/*"
-      >
-
-      <label for="member-color">
-        Member Color
-      </label>
-      <input
-        type="color"
-        id="member-color"
-        value="#ff80c8"
-      >
-
-      <div style="margin-top: 24px;">
-        <button type="submit" class="save-member">
-          Add Member
-        </button>
-      </div>
-
-    </form>
-  </section>
-
-  <!-- MEMBER LIST -->
   <section class="member-list">
     <h2>Members</h2>
-
-    <p class="member-list-empty">
-      No members added yet.
-    </p>
-
-    <div
-      id="member-list-items"
-      class="member-list-items">
-    </div>
+    <div id="member-list-items"></div>
   </section>
+
+  <!-- ADD MEMBER POP-UP -->
+  <div class="modal-overlay" id="member-modal">
+    <div
+      class="modal-content"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
+      <button
+        class="close-modal"
+        id="close-member-modal"
+        type="button"
+        aria-label="Close"
+      >×</button>
+
+      <h2 id="modal-title">Add Member</h2>
+
+      <form id="member-form" class="member-setup">
+
+        <label for="member-name">Member Name</label>
+        <input
+          type="text"
+          id="member-name"
+          placeholder="e.g. Ahyeon"
+          maxlength="30"
+          required
+        >
+
+        <label for="member-image">Member Photo</label>
+        <input
+          type="file"
+          id="member-image"
+          accept="image/*"
+        >
+
+        <label for="member-color">Member Color</label>
+        <input
+          type="color"
+          id="member-color"
+          value="#ff80c8"
+        >
+
+        <div style="margin-top: 24px;">
+          <button type="submit" class="save-member">
+            Save Member
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 
