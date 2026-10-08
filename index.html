@@ -3,11 +3,21 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
   <title>Line Distribution Studio</title>
+
   <link rel="stylesheet" href="style.css">
 
   <style>
+
+    /* ==========================================
+       GLOBAL PAGE STYLES
+       ========================================== */
+
     body {
       background: #101018;
       color: white;
@@ -19,6 +29,30 @@
     h1 {
       color: #ff80c8;
     }
+
+    button {
+      background: #ff80c8;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+
+    /* ==========================================
+       SCREEN VISIBILITY
+       ========================================== */
+
+    #welcome-screen[hidden],
+    #studio-screen[hidden] {
+      display: none !important;
+    }
+
+
+    /* ==========================================
+       VIDEO PREVIEW
+       ========================================== */
 
     .preview {
       width: 100%;
@@ -33,14 +67,10 @@
       justify-content: center;
     }
 
-    button {
-      background: #ff80c8;
-      border: none;
-      border-radius: 8px;
-      padding: 12px 24px;
-      cursor: pointer;
-      font-weight: bold;
-    }
+
+    /* ==========================================
+       ADD MEMBER POP-UP
+       ========================================== */
 
     .modal-overlay {
       display: none;
@@ -86,6 +116,11 @@
       padding: 4px 10px;
     }
 
+
+    /* ==========================================
+       MEMBER LIST
+       ========================================== */
+
     .member-list {
       max-width: 960px;
       margin: 30px auto;
@@ -124,6 +159,11 @@
       font-weight: bold;
     }
 
+
+    /* ==========================================
+       MEMBER KEYBOARD SHORTCUTS
+       ========================================== */
+
     .shortcut-input {
       width: 100%;
       padding: 12px;
@@ -158,250 +198,554 @@
       font-size: 13px;
       margin-top: 12px;
     }
+
   </style>
+
 </head>
 
 <body>
 
-  <!-- ========== HEADER ========== -->
 
-  <h1>LINE DISTRIBUTION STUDIO</h1>
-  <p>Create your own K-pop line distribution!</p>
+  <!-- ========================================
+       SCREEN 1 — WELCOME SCREEN
+       ======================================== -->
 
-
-  <!-- ========== VIDEO PREVIEW ========== -->
-
-  <div class="preview">
-    <h2>16:9 VIDEO PREVIEW</h2>
-  </div>
-
-
-  <!-- ========== MUSIC PLAYER ========== -->
-
-  <section
-    class="music-player"
-    aria-labelledby="music-player-title"
+  <main
+    id="welcome-screen"
+    class="welcome-screen"
   >
 
-    <h2 id="music-player-title">
-      MUSIC PLAYER
-    </h2>
+    <!-- WELCOME HEADER -->
 
-    <!-- MP3 FILE UPLOAD -->
+    <header class="welcome-header">
 
-    <div class="music-upload-area">
+      <h1>
+        WELCOME TO LINE DISTRIBUTION STUDIO
+      </h1>
 
-      <label for="music-file">
-        Choose MP3 File
-      </label>
+      <p>
+        Hello! Please choose your preferred visual style.
+      </p>
 
-      <input
-        type="file"
-        id="music-file"
-        accept=".mp3,audio/mpeg"
-      >
+    </header>
+
+
+    <!-- VISUAL STYLE SELECTION -->
+
+    <form id="mode-form">
+
+      <fieldset class="mode-selection">
+
+        <legend class="mode-selection-title">
+          Choose Your Style
+        </legend>
+
+
+        <div class="mode-options">
+
+
+          <!-- ============================
+               OPTION 1 — VISUAL
+               ============================ -->
+
+          <label
+            class="mode-card"
+            for="mode-visual"
+          >
+
+            <div class="mode-card-header">
+
+              <input
+                type="radio"
+                id="mode-visual"
+                name="visual-mode"
+                value="visual"
+                required
+              >
+
+              <span class="mode-card-title">
+                Visual Line Distribution
+              </span>
+
+            </div>
+
+
+            <!-- VISUAL PREVIEW IMAGE -->
+
+            <div class="mode-preview">
+
+              <img
+                id="visual-preview-image"
+                class="mode-preview-image"
+                alt="Example of Visual Line Distribution"
+                hidden
+              >
+
+              <div
+                id="visual-preview-placeholder"
+                class="mode-preview-placeholder"
+              >
+
+                <span class="mode-placeholder-icon">
+                  ◇
+                </span>
+
+                <span>
+                  Visual Preview Coming Soon
+                </span>
+
+              </div>
+
+            </div>
+
+
+            <!-- VISUAL DESCRIPTION -->
+
+            <p class="mode-description">
+              A modern visual layout with member
+              photos, colorful highlights and timers.
+            </p>
+
+          </label>
+
+
+
+          <!-- ============================
+               OPTION 2 — CLASSIC
+               ============================ -->
+
+          <label
+            class="mode-card"
+            for="mode-classic"
+          >
+
+            <div class="mode-card-header">
+
+              <input
+                type="radio"
+                id="mode-classic"
+                name="visual-mode"
+                value="classic"
+                required
+              >
+
+              <span class="mode-card-title">
+                Classic Line Distribution
+              </span>
+
+            </div>
+
+
+            <!-- CLASSIC PREVIEW IMAGE -->
+
+            <div class="mode-preview">
+
+              <img
+                id="classic-preview-image"
+                class="mode-preview-image"
+                alt="Example of Classic Line Distribution"
+                hidden
+              >
+
+              <div
+                id="classic-preview-placeholder"
+                class="mode-preview-placeholder"
+              >
+
+                <span class="mode-placeholder-icon">
+                  ☷
+                </span>
+
+                <span>
+                  Classic Preview Coming Soon
+                </span>
+
+              </div>
+
+            </div>
+
+
+            <!-- CLASSIC DESCRIPTION -->
+
+            <p class="mode-description">
+              A traditional ranking list with
+              member names, progress bars and timers.
+            </p>
+
+          </label>
+
+        </div>
+
+      </fieldset>
+
+
+
+      <!-- ============================
+           CONTINUE BUTTON
+           ============================ -->
+
+      <div class="welcome-actions">
+
+        <button
+          type="submit"
+          id="start-creating"
+          class="start-creating-button"
+        >
+          Start Creating →
+        </button>
+
+      </div>
+
+    </form>
+
+
+
+    <!-- WELCOME FOOTER -->
+
+    <footer class="welcome-footer">
+
+      <p>
+        Have fun! ♡
+      </p>
+
+    </footer>
+
+  </main>
+
+
+
+  <!-- ========================================
+       SCREEN 2 — MAIN GENERATOR
+       ======================================== -->
+
+  <div
+    id="studio-screen"
+    class="studio-screen"
+    hidden
+  >
+
+
+    <!-- ======================================
+         GENERATOR HEADER
+         ====================================== -->
+
+    <header class="studio-header">
+
+      <h1>
+        LINE DISTRIBUTION STUDIO
+      </h1>
+
+      <p>
+        Create your own K-pop line distribution!
+      </p>
+
+    </header>
+
+
+
+    <!-- ======================================
+         VIDEO PREVIEW
+         ====================================== -->
+
+    <div class="preview">
+
+      <h2>
+        16:9 VIDEO PREVIEW
+      </h2>
 
     </div>
 
-    <!-- SELECTED SONG NAME -->
 
-    <p id="music-track-name">
-      No MP3 selected
-    </p>
 
-    <!-- SONG TIMELINE -->
+    <!-- ======================================
+         MUSIC PLAYER
+         ====================================== -->
 
-    <div class="music-timeline">
+    <section
+      class="music-player"
+      aria-labelledby="music-player-title"
+    >
 
-      <input
-        type="range"
-        id="music-seek"
-        min="0"
-        max="100"
-        step="0.1"
-        value="0"
-        aria-label="Song progress"
-        disabled
+      <h2 id="music-player-title">
+        MUSIC PLAYER
+      </h2>
+
+
+      <!-- MP3 FILE UPLOAD -->
+
+      <div class="music-upload-area">
+
+        <label for="music-file">
+          Choose MP3 File
+        </label>
+
+        <input
+          type="file"
+          id="music-file"
+          accept=".mp3,audio/mpeg"
+        >
+
+      </div>
+
+
+      <!-- SELECTED SONG NAME -->
+
+      <p id="music-track-name">
+        No MP3 selected
+      </p>
+
+
+      <!-- SONG TIMELINE -->
+
+      <div class="music-timeline">
+
+        <input
+          type="range"
+          id="music-seek"
+          min="0"
+          max="100"
+          step="0.1"
+          value="0"
+          aria-label="Song progress"
+          disabled
+        >
+
+        <div class="music-time-display">
+
+          <span id="music-current-time">
+            0:00
+          </span>
+
+          <span id="music-duration">
+            0:00
+          </span>
+
+        </div>
+
+      </div>
+
+
+      <!-- PLAYBACK CONTROLS -->
+
+      <div class="music-controls">
+
+        <button
+          type="button"
+          id="music-restart"
+          disabled
+        >
+          ↺ Restart
+        </button>
+
+        <button
+          type="button"
+          id="music-toggle"
+          disabled
+        >
+          ▶ Play
+        </button>
+
+      </div>
+
+
+      <!-- VOLUME CONTROL -->
+
+      <div class="music-volume-control">
+
+        <label for="music-volume">
+          Volume
+        </label>
+
+        <input
+          type="range"
+          id="music-volume"
+          min="0"
+          max="1"
+          step="0.01"
+          value="1"
+        >
+
+      </div>
+
+
+      <!-- ERROR MESSAGE -->
+
+      <p
+        id="music-error"
+        class="music-error"
+        role="alert"
+        hidden
+      ></p>
+
+
+      <!-- AUDIO ELEMENT -->
+
+      <audio
+        id="music-audio"
+        preload="metadata"
+      ></audio>
+
+    </section>
+
+
+
+    <!-- ======================================
+         ADD MEMBER BUTTON
+         ====================================== -->
+
+    <button id="open-member-modal">
+      + Add Member
+    </button>
+
+
+
+    <!-- ======================================
+         MEMBER LIST
+         ====================================== -->
+
+    <section class="member-list">
+
+      <h2>
+        Members
+      </h2>
+
+      <div id="member-list-items"></div>
+
+    </section>
+
+
+
+    <!-- ======================================
+         ADD MEMBER POP-UP
+         ====================================== -->
+
+    <div
+      class="modal-overlay"
+      id="member-modal"
+    >
+
+      <div
+        class="modal-content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
       >
 
-      <div class="music-time-display">
+        <button
+          class="close-modal"
+          id="close-member-modal"
+          type="button"
+          aria-label="Close"
+        >
+          ×
+        </button>
 
-        <span id="music-current-time">
-          0:00
-        </span>
 
-        <span id="music-duration">
-          0:00
-        </span>
+        <h2 id="modal-title">
+          Add Member
+        </h2>
+
+
+        <form
+          id="member-form"
+          class="member-setup"
+        >
+
+
+          <!-- MEMBER NAME -->
+
+          <label for="member-name">
+            Member Name
+          </label>
+
+          <input
+            type="text"
+            id="member-name"
+            placeholder="e.g. Ahyeon"
+            maxlength="30"
+            required
+          >
+
+
+          <!-- MEMBER PHOTO -->
+
+          <label for="member-image">
+            Member Photo
+          </label>
+
+          <input
+            type="file"
+            id="member-image"
+            accept="image/*"
+          >
+
+
+          <!-- MEMBER COLOR -->
+
+          <label for="member-color">
+            Member Color
+          </label>
+
+          <input
+            type="color"
+            id="member-color"
+            value="#ff80c8"
+          >
+
+
+          <!-- MEMBER SHORTCUT -->
+
+          <label for="member-shortcut">
+            Keyboard Shortcut
+          </label>
+
+          <input
+            type="text"
+            id="member-shortcut"
+            class="shortcut-input"
+            placeholder="Click here and press a key"
+            readonly
+            required
+          >
+
+
+          <!-- MEMBER ERROR MESSAGE -->
+
+          <p
+            id="shortcut-error"
+            class="form-error"
+            hidden
+          ></p>
+
+
+          <!-- SAVE MEMBER BUTTON -->
+
+          <div style="margin-top: 24px;">
+
+            <button
+              type="submit"
+              class="save-member"
+            >
+              Save Member
+            </button>
+
+          </div>
+
+
+        </form>
 
       </div>
 
     </div>
 
-    <!-- PLAYBACK CONTROLS -->
 
-    <div class="music-controls">
-
-      <button
-        type="button"
-        id="music-restart"
-        disabled
-      >
-        ↺ Restart
-      </button>
-
-      <button
-        type="button"
-        id="music-toggle"
-        disabled
-      >
-        ▶ Play
-      </button>
-
-    </div>
-
-    <!-- VOLUME CONTROL -->
-
-    <div class="music-volume-control">
-
-      <label for="music-volume">
-        Volume
-      </label>
-
-      <input
-        type="range"
-        id="music-volume"
-        min="0"
-        max="1"
-        step="0.01"
-        value="1"
-      >
-
-    </div>
-
-    <!-- ERROR MESSAGE -->
-
-    <p
-      id="music-error"
-      class="music-error"
-      role="alert"
-      hidden
-    ></p>
-
-    <!-- AUDIO ELEMENT -->
-
-    <audio
-      id="music-audio"
-      preload="metadata"
-    ></audio>
-
-  </section>
-
-
-  <!-- ========== ADD MEMBER BUTTON ========== -->
-
-  <button id="open-member-modal">
-    + Add Member
-  </button>
-
-
-  <!-- ========== MEMBER LIST ========== -->
-
-  <section class="member-list">
-    <h2>Members</h2>
-    <div id="member-list-items"></div>
-  </section>
-
-
-  <!-- ========== ADD MEMBER POP-UP ========== -->
-
-  <div class="modal-overlay" id="member-modal">
-    <div
-      class="modal-content"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-title"
-    >
-
-      <button
-        class="close-modal"
-        id="close-member-modal"
-        type="button"
-        aria-label="Close"
-      >×</button>
-
-      <h2 id="modal-title">
-        Add Member
-      </h2>
-
-      <form id="member-form" class="member-setup">
-
-        <label for="member-name">
-          Member Name
-        </label>
-
-        <input
-          type="text"
-          id="member-name"
-          placeholder="e.g. Ahyeon"
-          maxlength="30"
-          required
-        >
-
-        <label for="member-image">
-          Member Photo
-        </label>
-
-        <input
-          type="file"
-          id="member-image"
-          accept="image/*"
-        >
-
-        <label for="member-color">
-          Member Color
-        </label>
-
-        <input
-          type="color"
-          id="member-color"
-          value="#ff80c8"
-        >
-
-        <label for="member-shortcut">
-          Keyboard Shortcut
-        </label>
-
-        <input
-          type="text"
-          id="member-shortcut"
-          class="shortcut-input"
-          placeholder="Click here and press a key"
-          readonly
-          required
-        >
-
-        <p
-          id="shortcut-error"
-          class="form-error"
-          hidden
-        ></p>
-
-        <div style="margin-top: 24px;">
-          <button
-            type="submit"
-            class="save-member"
-          >
-            Save Member
-          </button>
-        </div>
-
-      </form>
-    </div>
   </div>
 
 
-  <!-- ========== JAVASCRIPT ========== -->
+
+  <!-- ========================================
+       JAVASCRIPT
+       ======================================== -->
 
   <script src="script.js"></script>
 
