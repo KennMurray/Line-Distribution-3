@@ -1,4 +1,8 @@
 
+/* ==========================================
+   LINE DISTRIBUTION STUDIO
+   GLOBAL COLORS & SETTINGS
+   ========================================== */
 
 :root {
   --background: #101018;
@@ -19,6 +23,12 @@ body {
   color: var(--text);
   font-family: Arial, sans-serif;
 }
+
+
+/* ==========================================
+   SECTION 1 — ADD MEMBER SYSTEM
+   ORIGINAL STYLES
+   ========================================== */
 
 .member-setup {
   background: var(--panel);
@@ -86,4 +96,561 @@ body {
   border-radius: 8px;
   padding: 12px 24px;
   cursor: pointer;
+}
+
+
+/* ==========================================
+   SECTION 2 — MUSIC PLAYER
+   MAIN CONTAINER
+   ========================================== */
+
+.music-player {
+  width: 100%;
+  max-width: 960px;
+
+  margin: 25px auto 35px;
+  padding: 30px;
+
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(255, 128, 200, 0.08),
+      transparent 55%
+    ),
+    linear-gradient(
+      145deg,
+      #20202e,
+      #171720
+    );
+
+  border: 1px solid #393949;
+  border-radius: 20px;
+
+  box-shadow:
+    0 10px 35px rgba(0, 0, 0, 0.25),
+    0 0 20px rgba(255, 128, 200, 0.04);
+
+  text-align: left;
+
+  color: var(--text);
+}
+
+
+/* ==========================================
+   MUSIC PLAYER — TITLE
+   ========================================== */
+
+.music-player h2 {
+  color: var(--accent);
+
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+
+  margin: 0 0 25px;
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.music-player h2::before {
+  content: "";
+
+  display: inline-block;
+
+  width: 5px;
+  height: 23px;
+
+  background: var(--accent);
+  border-radius: 10px;
+
+  box-shadow: 0 0 12px rgba(255, 128, 200, 0.4);
+}
+
+
+/* ==========================================
+   MUSIC PLAYER — MP3 UPLOAD AREA
+   ========================================== */
+
+.music-upload-area {
+  width: 100%;
+
+  padding: 20px;
+
+  background: rgba(16, 16, 24, 0.6);
+
+  border: 1px dashed #555063;
+  border-radius: 14px;
+
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.music-upload-area:hover {
+  border-color: var(--accent);
+
+  background: rgba(255, 128, 200, 0.04);
+}
+
+.music-upload-area label {
+  display: block;
+
+  color: #eae8f2;
+  font-size: 14px;
+  font-weight: 600;
+
+  margin-bottom: 14px;
+}
+
+.music-upload-area input[type="file"] {
+  display: block;
+
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  padding: 10px;
+
+  color: var(--muted);
+  background: var(--input);
+
+  border: 1px solid #454555;
+  border-radius: 10px;
+
+  font-family: inherit;
+  font-size: 13px;
+
+  cursor: pointer;
+}
+
+
+/* CUSTOM FILE UPLOAD BUTTON */
+
+.music-upload-area input[type="file"]::file-selector-button {
+  background: linear-gradient(
+    135deg,
+    #ff96d2,
+    #ff80c8
+  );
+
+  color: #101018;
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+
+  border: none;
+  border-radius: 8px;
+
+  padding: 11px 18px;
+  margin-right: 15px;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    filter 0.2s ease;
+}
+
+.music-upload-area input[type="file"]::file-selector-button:hover {
+  filter: brightness(1.08);
+}
+
+
+/* ==========================================
+   MUSIC PLAYER — SONG NAME
+   ========================================== */
+
+#music-track-name {
+  margin: 24px 0 22px;
+
+  color: #ffffff;
+
+  font-size: 17px;
+  font-weight: 600;
+
+  text-align: center;
+
+  overflow-wrap: anywhere;
+}
+
+
+/* ==========================================
+   MUSIC PLAYER — TIMELINE
+   ========================================== */
+
+.music-timeline {
+  width: 100%;
+
+  margin-top: 15px;
+}
+
+.music-time-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-top: 12px;
+
+  color: var(--muted);
+
+  font-size: 13px;
+  font-weight: 500;
+
+  font-variant-numeric: tabular-nums;
+}
+
+
+/* ==========================================
+   MUSIC PLAYER — SLIDERS
+   ========================================== */
+
+.music-timeline input[type="range"],
+.music-volume-control input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+
+  display: block;
+
+  width: 100%;
+  height: 6px;
+
+  padding: 0;
+  margin: 0;
+
+  background: #484456;
+
+  border: none;
+  border-radius: 20px;
+
+  cursor: pointer;
+
+  outline: none;
+}
+
+
+/* SLIDER THUMB — CHROME, EDGE, SAFARI */
+
+.music-timeline input[type="range"]::-webkit-slider-thumb,
+.music-volume-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+
+  width: 17px;
+  height: 17px;
+
+  background: var(--accent);
+
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+
+  box-shadow:
+    0 0 0 3px rgba(255, 128, 200, 0.14),
+    0 0 12px rgba(255, 128, 200, 0.35);
+
+  cursor: pointer;
+
+  transition: transform 0.2s ease;
+}
+
+
+/* SLIDER THUMB — FIREFOX */
+
+.music-timeline input[type="range"]::-moz-range-thumb,
+.music-volume-control input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+
+  background: var(--accent);
+
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+
+  box-shadow: 0 0 12px rgba(255, 128, 200, 0.35);
+
+  cursor: pointer;
+}
+
+
+/* HOVER EFFECT */
+
+.music-timeline input[type="range"]:hover::-webkit-slider-thumb,
+.music-volume-control input[type="range"]:hover::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+
+
+/* FIREFOX FILLED SLIDER */
+
+.music-timeline input[type="range"]::-moz-range-progress,
+.music-volume-control input[type="range"]::-moz-range-progress {
+  background: var(--accent);
+  height: 6px;
+  border-radius: 20px;
+}
+
+
+/* DISABLED SLIDER */
+
+.music-timeline input[type="range"]:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.music-timeline input[type="range"]:disabled::-webkit-slider-thumb {
+  cursor: not-allowed;
+}
+
+
+/* ==========================================
+   MUSIC PLAYER — PLAYBACK CONTROLS
+   ========================================== */
+
+.music-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-wrap: wrap;
+
+  gap: 14px;
+
+  margin: 30px 0 25px;
+}
+
+.music-controls button {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  min-width: 140px;
+  min-height: 47px;
+
+  padding: 13px 25px;
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+
+  border-radius: 12px;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease,
+    opacity 0.2s ease;
+}
+
+
+/* RESTART BUTTON */
+
+#music-restart {
+  background: #302c3b;
+
+  color: #f2edf5;
+
+  border: 1px solid #50485a;
+}
+
+#music-restart:hover:not(:disabled) {
+  background: #40384b;
+
+  border-color: var(--accent);
+
+  transform: translateY(-2px);
+}
+
+
+/* PLAY / PAUSE BUTTON */
+
+#music-toggle {
+  background: linear-gradient(
+    135deg,
+    #ffa3d6,
+    #ff80c8
+  );
+
+  color: #101018;
+
+  border: 1px solid transparent;
+
+  box-shadow: 0 4px 18px rgba(255, 128, 200, 0.18);
+}
+
+#music-toggle:hover:not(:disabled) {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 5px 25px rgba(255, 128, 200, 0.35);
+}
+
+
+/* DISABLED BUTTONS */
+
+.music-controls button:disabled {
+  opacity: 0.38;
+
+  cursor: not-allowed;
+
+  transform: none;
+  box-shadow: none;
+}
+
+
+/* BUTTON PRESS EFFECT */
+
+.music-controls button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+
+/* ==========================================
+   MUSIC PLAYER — VOLUME CONTROL
+   ========================================== */
+
+.music-volume-control {
+  display: flex;
+
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 16px;
+
+  padding-top: 22px;
+
+  border-top: 1px solid #343441;
+}
+
+.music-volume-control label {
+  color: var(--muted);
+
+  font-size: 13px;
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+.music-volume-control input[type="range"] {
+  width: 160px;
+  max-width: 55%;
+}
+
+
+/* ==========================================
+   MUSIC PLAYER — ERROR MESSAGE
+   ========================================== */
+
+.music-error:not([hidden]) {
+  display: block;
+
+  margin: 20px 0 0;
+
+  padding: 13px 16px;
+
+  background: rgba(255, 90, 110, 0.08);
+
+  color: #ffadba;
+
+  border: 1px solid rgba(255, 90, 110, 0.3);
+  border-radius: 10px;
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+
+/* ==========================================
+   MUSIC PLAYER — HIDDEN AUDIO ELEMENT
+   ========================================== */
+
+#music-audio {
+  display: none;
+}
+
+
+/* ==========================================
+   MUSIC PLAYER — ACCESSIBILITY
+   ========================================== */
+
+.music-player button:focus-visible,
+.music-player input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+
+/* ==========================================
+   MUSIC PLAYER — MOBILE RESPONSIVENESS
+   ========================================== */
+
+@media (max-width: 600px) {
+
+  .music-player {
+    padding: 20px 16px;
+
+    border-radius: 16px;
+  }
+
+  .music-player h2 {
+    font-size: 18px;
+
+    margin-bottom: 20px;
+  }
+
+  .music-upload-area {
+    padding: 14px;
+  }
+
+  .music-upload-area input[type="file"] {
+    font-size: 12px;
+  }
+
+  .music-upload-area input[type="file"]::file-selector-button {
+    padding: 10px 12px;
+    margin-right: 8px;
+  }
+
+  #music-track-name {
+    font-size: 15px;
+  }
+
+  .music-controls {
+    gap: 10px;
+  }
+
+  .music-controls button {
+    min-width: 120px;
+    padding: 12px 15px;
+
+    font-size: 13px;
+  }
+
+  .music-volume-control {
+    justify-content: space-between;
+  }
+
+  .music-volume-control input[type="range"] {
+    width: 55%;
+  }
+
+}
+
+
+/* ==========================================
+   MUSIC PLAYER — REDUCED MOTION
+   ========================================== */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .music-player button,
+  .music-player input,
+  .music-upload-area {
+    transition: none;
+  }
+
 }
