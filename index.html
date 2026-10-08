@@ -123,6 +123,41 @@
       color: var(--member-color);
       font-weight: bold;
     }
+
+    .shortcut-input {
+      width: 100%;
+      padding: 12px;
+      background: #292938;
+      border: 1px solid #454555;
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+      text-align: center;
+      font-weight: bold;
+      margin-top: 8px;
+    }
+
+    .shortcut-input:focus {
+      outline: none;
+      border-color: #ff80c8;
+      box-shadow: 0 0 10px #ff80c855;
+    }
+
+    .member-shortcut {
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 6px;
+      background: #292938;
+      color: white;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .form-error {
+      color: #ff9b9b;
+      font-size: 13px;
+      margin-top: 12px;
+    }
   </style>
 </head>
 
@@ -144,7 +179,6 @@
     <div id="member-list-items"></div>
   </section>
 
-  <!-- ADD MEMBER POP-UP -->
   <div class="modal-overlay" id="member-modal">
     <div
       class="modal-content"
@@ -185,6 +219,20 @@
           id="member-color"
           value="#ff80c8"
         >
+
+        <label for="member-shortcut">
+          Keyboard Shortcut
+        </label>
+        <input
+          type="text"
+          id="member-shortcut"
+          class="shortcut-input"
+          placeholder="Click here and press a key"
+          readonly
+          required
+        >
+
+        <p id="shortcut-error" class="form-error" hidden></p>
 
         <div style="margin-top: 24px;">
           <button type="submit" class="save-member">
