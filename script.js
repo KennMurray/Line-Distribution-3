@@ -2,7 +2,51 @@
 document.addEventListener("DOMContentLoaded", function () {
 
   // ==========================================
-  // SECTION 1 — ADD MEMBER SYSTEM
+  // SECTION 1 — WELCOME SCREEN
+  // ==========================================
+
+  const welcomeScreen = document.getElementById("welcome-screen");
+  const studioScreen = document.getElementById("studio-screen");
+  const modeForm = document.getElementById("mode-form");
+
+  // Selected visual style for the current session.
+  // The actual visual layouts will be added later.
+
+  let selectedVisualMode = null;
+
+  // ---------- START GENERATOR ----------
+
+  modeForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+
+    const selectedOption = modeForm.querySelector(
+      'input[name="visual-mode"]:checked'
+    );
+
+    if (!selectedOption) {
+      return;
+    }
+
+    selectedVisualMode = selectedOption.value;
+
+    // Store the selected mode on the main studio.
+    // Future layouts can use this value.
+
+    studioScreen.dataset.visualMode = selectedVisualMode;
+
+    // Hide welcome screen and show generator.
+
+    welcomeScreen.hidden = true;
+    studioScreen.hidden = false;
+
+    // Return to the top of the page.
+
+    window.scrollTo(0, 0);
+  });
+
+
+  // ==========================================
+  // SECTION 2 — ADD MEMBER SYSTEM
   // ==========================================
 
   const modal = document.getElementById("member-modal");
@@ -60,7 +104,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  // ---------- MEMBER KEYBOARD SHORTCUTS ----------
+  // ---------- MEMBER KEYBOARD SHORTCUT SETUP ----------
 
   shortcutInput.addEventListener("keydown", function (event) {
     event.preventDefault();
@@ -101,6 +145,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     selectedShortcut = key;
     shortcutInput.value = key;
+
     clearError();
   });
 
@@ -118,7 +163,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const color = colorInput.value;
     const photo = imageInput.files[0];
 
-    if (!name) return;
+    if (!name) {
+      return;
+    }
 
     if (!selectedShortcut) {
       showError("Choose a keyboard shortcut first.");
@@ -131,14 +178,13 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    // Each member has a place for future results.
+    // Create member with recording data.
 
     const member = {
       name: name,
       color: color,
       shortcut: selectedShortcut,
 
-      // Recording data — currently empty.
       lines: [],
       totalSeconds: 0,
       percentage: 0
@@ -146,11 +192,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
     members.push(member);
 
-    // ---------- MEMBER CARD ----------
+    // ---------- CREATE MEMBER CARD ----------
 
     const card = document.createElement("div");
     card.className = "member-card";
+
     card.style.setProperty("--member-color", color);
+
+    // ---------- MEMBER PHOTO ----------
 
     if (photo) {
       const image = document.createElement("img");
@@ -166,25 +215,32 @@ document.addEventListener("DOMContentLoaded", function () {
       card.appendChild(image);
     }
 
+    // ---------- MEMBER NAME ----------
+
     const memberName = document.createElement("p");
     memberName.textContent = name;
 
+    // ---------- MEMBER SHORTCUT BADGE ----------
+
     const shortcutBadge = document.createElement("span");
+
     shortcutBadge.className = "member-shortcut";
     shortcutBadge.textContent = "Key: " + selectedShortcut;
 
     card.appendChild(memberName);
     card.appendChild(shortcutBadge);
+
     memberList.appendChild(card);
 
     form.reset();
     selectedShortcut = "";
+
     closeModal();
   });
 
 
   // ==========================================
-  // SECTION 2 — MUSIC PLAYER
+  // SECTION 3 — MUSIC PLAYER
   // ==========================================
 
   const musicFile = document.getElementById("music-file");
@@ -194,8 +250,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const musicSeek = document.getElementById("music-seek");
 
-  const musicCurrentTime = document.getElementById("music-current-time");
-  const musicDuration = document.getElementById("music-duration");
+  const musicCurrentTime = document.getElementById(
+    "music-current-time"
+  );
+
+  const musicDuration = document.getElementById(
+    "music-duration"
+  );
 
   const musicToggle = document.getElementById("music-toggle");
   const musicRestart = document.getElementById("music-restart");
@@ -206,7 +267,7 @@ document.addEventListener("DOMContentLoaded", function () {
   let currentMusicURL = null;
   let musicIsReady = false;
 
-  // ---------- MUSIC ERROR MESSAGES ----------
+  // ---------- MUSIC PLAYER ERRORS ----------
 
   function showMusicError(message) {
     musicError.textContent = message;
@@ -218,7 +279,7 @@ document.addEventListener("DOMContentLoaded", function () {
     musicError.hidden = true;
   }
 
-  // ---------- FORMAT TIME ----------
+  // ---------- FORMAT SONG TIME ----------
 
   function formatMusicTime(seconds) {
     if (!Number.isFinite(seconds) || seconds < 0) {
@@ -231,7 +292,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const remainingSeconds = totalSeconds % 60;
 
-    const paddedSeconds = String(remainingSeconds).padStart(2, "0");
+    const paddedSeconds = String(
+      remainingSeconds
+    ).padStart(2, "0");
 
     if (hours > 0) {
       return (
@@ -254,7 +317,7 @@ document.addEventListener("DOMContentLoaded", function () {
     musicSeek.disabled = !enabled;
   }
 
-  // ---------- PLAY BUTTON ----------
+  // ---------- UPDATE PLAY BUTTON ----------
 
   function updateMusicPlayButton() {
     if (musicAudio.paused) {
@@ -264,26 +327,34 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // ---------- SONG PROGRESS ----------
+  // ---------- UPDATE MUSIC PROGRESS ----------
 
   function updateMusicProgress() {
     const currentTime = musicAudio.currentTime;
     const duration = musicAudio.duration;
 
-    musicCurrentTime.textContent = formatMusicTime(currentTime);
+    musicCurrentTime.textContent = formatMusicTime(
+      currentTime
+    );
 
     if (Number.isFinite(duration) && duration > 0) {
       const progress = (currentTime / duration) * 100;
 
-      musicSeek.value = Math.min(100, Math.max(0, progress));
-      musicDuration.textContent = formatMusicTime(duration);
+      musicSeek.value = Math.min(
+        100,
+        Math.max(0, progress)
+      );
+
+      musicDuration.textContent = formatMusicTime(
+        duration
+      );
     } else {
       musicSeek.value = 0;
       musicDuration.textContent = "0:00";
     }
   }
 
-  // ---------- INITIAL STATE ----------
+  // ---------- INITIAL MUSIC PLAYER STATE ----------
 
   setMusicControlsEnabled(false);
 
@@ -292,16 +363,45 @@ document.addEventListener("DOMContentLoaded", function () {
   updateMusicPlayButton();
   updateMusicProgress();
 
-  // Change button label without editing index.html.
+  // Set Restart All button label.
 
   musicRestart.textContent = "↺ Restart All (~)";
 
-  musicRestart.setAttribute(
-    "aria-keyshortcuts",
-    "Backquote"
-  );
 
-  // ---------- LOAD MP3 ----------
+  // ==========================================
+  // SECTION 4 — RECORDING DATA
+  // ==========================================
+
+  // This will store all recorded singing intervals.
+  // Recording functionality will be implemented later.
+
+  let recordedLines = [];
+
+  // ---------- RESET MEMBER RESULTS ----------
+
+  function resetMemberResults() {
+
+    recordedLines = [];
+
+    members.forEach(function (member) {
+      member.lines = [];
+      member.totalSeconds = 0;
+      member.percentage = 0;
+    });
+
+    // Future elements to reset:
+    // - member timers
+    // - percentage counters
+    // - progress bars
+    // - ranking positions
+    // - recording timeline
+    // - active singing indicators
+  }
+
+
+  // ==========================================
+  // SECTION 5 — LOAD MP3 FILE
+  // ==========================================
 
   musicFile.addEventListener("change", function () {
     clearMusicError();
@@ -312,6 +412,8 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
+    // Accept MP3 files only.
+
     const isMP3 = /\.mp3$/i.test(file.name);
 
     if (!isMP3) {
@@ -319,6 +421,8 @@ document.addEventListener("DOMContentLoaded", function () {
       musicFile.value = "";
       return;
     }
+
+    // Stop currently playing audio.
 
     musicAudio.pause();
 
@@ -328,6 +432,8 @@ document.addEventListener("DOMContentLoaded", function () {
     musicCurrentTime.textContent = "0:00";
     musicDuration.textContent = "0:00";
 
+    // Create URL for the new MP3.
+
     const newMusicURL = URL.createObjectURL(file);
     const previousMusicURL = currentMusicURL;
 
@@ -336,23 +442,29 @@ document.addEventListener("DOMContentLoaded", function () {
     musicAudio.src = newMusicURL;
     musicAudio.load();
 
+    // Release previous music URL.
+
     if (previousMusicURL) {
       URL.revokeObjectURL(previousMusicURL);
     }
 
-    musicTrackName.textContent = file.name.replace(/\.mp3$/i, "");
+    // Display selected song name.
+
+    musicTrackName.textContent = file.name.replace(
+      /\.mp3$/i,
+      ""
+    );
 
     musicFile.value = "";
 
     updateMusicPlayButton();
 
-    // A new song starts with clean recording results.
-    // The member list stays unchanged.
+    // Clear recording results for the new song.
 
     resetMemberResults();
   });
 
-  // ---------- METADATA LOADED ----------
+  // ---------- MP3 METADATA LOADED ----------
 
   musicAudio.addEventListener("loadedmetadata", function () {
     const duration = musicAudio.duration;
@@ -362,7 +474,10 @@ document.addEventListener("DOMContentLoaded", function () {
       clearMusicError();
     } else {
       setMusicControlsEnabled(false);
-      showMusicError("Could not read this MP3 file's duration.");
+
+      showMusicError(
+        "Could not read this MP3 file's duration."
+      );
     }
 
     updateMusicProgress();
@@ -390,7 +505,7 @@ document.addEventListener("DOMContentLoaded", function () {
     updateMusicPlayButton();
   });
 
-  // ---------- SEEK ----------
+  // ---------- SEEK THROUGH SONG ----------
 
   musicSeek.addEventListener("input", function () {
     if (!musicIsReady) {
@@ -408,7 +523,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  // ---------- VOLUME ----------
+  // ---------- MUSIC VOLUME ----------
 
   musicVolume.addEventListener("input", function () {
     musicAudio.volume = Number(musicVolume.value);
@@ -416,14 +531,25 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // ---------- AUDIO EVENTS ----------
 
-  musicAudio.addEventListener("timeupdate", updateMusicProgress);
+  musicAudio.addEventListener(
+    "timeupdate",
+    updateMusicProgress
+  );
 
-  musicAudio.addEventListener("durationchange", function () {
-    updateMusicProgress();
-  });
+  musicAudio.addEventListener(
+    "durationchange",
+    updateMusicProgress
+  );
 
-  musicAudio.addEventListener("play", updateMusicPlayButton);
-  musicAudio.addEventListener("pause", updateMusicPlayButton);
+  musicAudio.addEventListener(
+    "play",
+    updateMusicPlayButton
+  );
+
+  musicAudio.addEventListener(
+    "pause",
+    updateMusicPlayButton
+  );
 
   musicAudio.addEventListener("ended", function () {
     updateMusicPlayButton();
@@ -442,7 +568,7 @@ document.addEventListener("DOMContentLoaded", function () {
     );
   });
 
-  // ---------- CLEAN UP ----------
+  // ---------- CLEAN UP MUSIC FILE URL ----------
 
   window.addEventListener("pagehide", function () {
     if (currentMusicURL) {
@@ -453,46 +579,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   // ==========================================
-  // SECTION 3 — RECORDING DATA
-  // ==========================================
-
-  // This array will hold recorded line intervals
-  // when we add the recording system.
-
-  let recordedLines = [];
-
-  // ---------- RESET MEMBER RESULTS ----------
-
-  function resetMemberResults() {
-
-    // Clear all recorded line intervals.
-
-    recordedLines = [];
-
-    // Reset each member's future recording data.
-    // Do not remove members or change their settings.
-
-    members.forEach(function (member) {
-      member.lines = [];
-      member.totalSeconds = 0;
-      member.percentage = 0;
-    });
-
-    // In the future we will also update:
-    // - member progress bars
-    // - seconds counters
-    // - percentage counters
-    // - "Now Singing" indicator
-    // - recording timeline
-  }
-
-
-  // ==========================================
-  // SECTION 4 — RESTART ALL
+  // SECTION 6 — RESTART ALL
   // ==========================================
 
   function restartAll() {
-
     if (!musicIsReady) {
       return;
     }
@@ -501,25 +591,26 @@ document.addEventListener("DOMContentLoaded", function () {
 
     musicAudio.pause();
 
-    // Rewind to the beginning.
+    // Rewind the song to 0:00.
 
     musicAudio.currentTime = 0;
 
-    // Clear all member recording results.
+    // Reset all member recording results.
 
     resetMemberResults();
 
-    // Update the Music Player.
+    // Update player display.
 
     updateMusicProgress();
     updateMusicPlayButton();
 
     // Keep:
-    // - loaded MP3
-    // - member names
+    // - selected MP3
+    // - all members
     // - member photos
     // - member colors
-    // - member keyboard shortcuts
+    // - member shortcuts
+    // - chosen visual style
   }
 
   // ---------- RESTART BUTTON ----------
@@ -530,27 +621,31 @@ document.addEventListener("DOMContentLoaded", function () {
 
   document.addEventListener("keydown", function (event) {
 
-    // Do not restart repeatedly while holding the key.
+    // Prevent repeated activation.
 
     if (event.repeat) {
       return;
     }
 
-    // Do not trigger shortcuts while using
-    // Ctrl, Alt, or Command.
+    // Ignore Ctrl, Alt and Command combinations.
 
     if (event.ctrlKey || event.altKey || event.metaKey) {
       return;
     }
 
-    // Do not restart when the Add Member window is open.
+    // Only activate shortcuts inside the studio.
+
+    if (studioScreen.hidden) {
+      return;
+    }
+
+    // Ignore shortcuts while Add Member is open.
 
     if (modal.classList.contains("open")) {
       return;
     }
 
-    // Do not trigger shortcuts while typing
-    // or using form controls.
+    // Ignore shortcuts when typing or using inputs.
 
     const target = event.target;
 
@@ -564,9 +659,7 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    // Backquote is the physical key normally
-    // found directly below Esc on US keyboards.
-    // Also accept ~ if produced by another layout.
+    // The ~ key / physical Backquote key.
 
     const isRestartKey =
       event.code === "Backquote" ||
@@ -583,13 +676,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   // ==========================================
-  // SECTION 5 — FUTURE RECORDING SYSTEM
+  // SECTION 7 — FUTURE RECORDING SYSTEM
   // ==========================================
 
-  // Next stage:
+  // Next features:
+  //
   // - Start Recording button
-  // - member line recording with keybinds
-  // - calculate seconds and percentages
-  // - live line distribution preview
+  // - Member keyboard shortcuts while recording
+  // - Live member timers
+  // - Automatic ranking
+  // - Classic Line Distribution layout
+  // - Visual Line Distribution layout
+  // - Video export
 
 });
