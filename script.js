@@ -10,8 +10,21 @@ document.addEventListener("DOMContentLoaded", function () {
   const nameInput = document.getElementById("member-name");
   const imageInput = document.getElementById("member-image");
   const colorInput = document.getElementById("member-color");
+  const shortcutInput = document.getElementById("member-shortcut");
+  const shortcutError = document.getElementById("shortcut-error");
 
-  let memberCount = 0;
+  const members = [];
+  let selectedShortcut = "";
+
+  function showError(message) {
+    shortcutError.textContent = message;
+    shortcutError.hidden = false;
+  }
+
+  function clearError() {
+    shortcutError.textContent = "";
+    shortcutError.hidden = true;
+  }
 
   function openModal() {
     modal.classList.add("open");
@@ -20,6 +33,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function closeModal() {
     modal.classList.remove("open");
+    clearError();
   }
 
   openButton.addEventListener("click", openModal);
@@ -37,11 +51,53 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
+  shortcutInput.addEventListener("keydown", function (event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const key = event.key.toUpperCase();
+
+    if (key === "ESCAPE") {
+      closeModal();
+      return;
+    }
+
+    if (
+      key === " " ||
+      key === "SPACE" ||
+      key === "ENTER" ||
+      key === "TAB" ||
+      key === "BACKSPACE" ||
+      key === "DELETE" ||
+      key === "CONTROL" ||
+      key === "SHIFT" ||
+      key === "ALT" ||
+      key === "META"
+    ) {
+      showError("This key is reserved. Choose another key.");
+      return;
+    }
+
+    if (key.length !== 1 || !/^[A-Z0-9]$/.test(key)) {
+      showError("Choose a letter (A-Z) or number (0-9).");
+      return;
+    }
+
+    if (members.some(member => member.shortcut === key)) {
+      showError("This key is already assigned to another member.");
+      return;
+    }
+
+    selectedShortcut = key;
+    shortcutInput.value = key;
+    clearError();
+  });
+
   form.addEventListener("submit", function (event) {
     event.preventDefault();
 
-    if (memberCount >= 20) {
-      alert("Maximum 20 members allowed!");
+    if (members.length >= 20) {
+      showError("You cannot add more members.");
       return;
     }
 
@@ -51,12 +107,28 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (!name) return;
 
+    if (!selectedShortcut) {
+      showError("Choose a keyboard shortcut first.");
+      shortcutInput.focus();
+      return;
+    }
+
+    if (members.some(member => member.shortcut === selectedShortcut)) {
+      showError("This key is already assigned.");
+      return;
+    }
+
+    const member = {
+      name: name,
+      color: color,
+      shortcut: selectedShortcut
+    };
+
+    members.push(member);
+
     const card = document.createElement("div");
     card.className = "member-card";
     card.style.setProperty("--member-color", color);
-
-    const memberName = document.createElement("p");
-    memberName.textContent = name;
 
     if (photo) {
       const image = document.createElement("img");
@@ -71,12 +143,19 @@ document.addEventListener("DOMContentLoaded", function () {
       card.appendChild(image);
     }
 
+    const memberName = document.createElement("p");
+    memberName.textContent = name;
+
+    const shortcutBadge = document.createElement("span");
+    shortcutBadge.className = "member-shortcut";
+    shortcutBadge.textContent = "Key: " + selectedShortcut;
+
     card.appendChild(memberName);
+    card.appendChild(shortcutBadge);
     memberList.appendChild(card);
 
-    memberCount++;
-
     form.reset();
+    selectedShortcut = "";
     closeModal();
   });
 });
