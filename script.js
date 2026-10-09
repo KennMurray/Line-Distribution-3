@@ -1,1023 +1,78 @@
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener('DOMContentLoaded', () => {
   const $ = id => document.getElementById(id);
 
-  const welcomeScreen = $("welcome-screen");
-  const studioScreen = $("studio-screen");
-  const modeForm = $("mode-form");
-  const modal = $("member-modal");
-  const openButton = $("open-member-modal");
-  const closeButton = $("close-member-modal");
-  const memberForm = $("member-form");
-  const memberList = $("member-list-items");
-  const nameInput = $("member-name");
-  const imageInput = $("member-image");
-  const colorInput = $("member-color");
-  const shortcutInput = $("member-shortcut");
-  const shortcutError = $("shortcut-error");
-  const classicMembers = $("classic-members");
-  const classicLayout = $("classic-layout");
-  const visualLayout = $("visual-layout");
-  const visualStage = $("visual-stage");
-  const visualMembers = $("visual-members");
-  const visualTemplate = $("visual-member-template");
-  const visualDragHint = $("visual-drag-hint");
-  const musicFile = $("music-file");
-  const musicAudio = $("music-audio");
-  const musicTrackName = $("music-track-name");
-  const musicSeek = $("music-seek");
-  const musicCurrentTime = $("music-current-time");
-  const musicDuration = $("music-duration");
-  const musicToggle = $("music-toggle");
-  const musicRestart = $("music-restart");
-  const musicVolume = $("music-volume");
-  const musicError = $("music-error");
+  const welcome = $('welcome-screen');
+  const studio = $('studio-screen');
+  const modeForm = $('mode-form');
+
+  const memberModal = $('member-modal');
+  const memberForm = $('member-form');
+  const memberList = $('member-list-items');
+  const memberName = $('member-name');
+  const memberImage = $('member-image');
+  const memberColor = $('member-color');
+  const memberShortcut = $('member-shortcut');
+  const shortcutError = $('shortcut-error');
+
+  const classicMembers = $('classic-members');
+  const classicLayout = $('classic-layout');
+
+  const visualStage = $('visual-stage');
+  const visualMembers = $('visual-members');
+  const visualTemplate = $('visual-member-template');
+  const visualHint = $('visual-drag-hint');
+
+  const audio = $('music-audio');
+  const audioFile = $('music-file');
+  const seek = $('music-seek');
+  const trackName = $('music-track-name');
+  const timeNow = $('music-current-time');
+  const timeLength = $('music-duration');
+  const playButton = $('music-toggle');
+  const restartButton = $('music-restart');
+  const volume = $('music-volume');
+  const musicError = $('music-error');
+
+  const groupButton = $('open-groups-modal');
+  const groupsModal = $('groups-modal');
+  const editorModal = $('group-editor-modal');
+  const loadModal = $('group-load-modal');
 
   const members = [];
   const recordedLines = [];
-
-  let selectedShortcut = "";
-  let currentMusicURL = null;
-  let musicIsReady = false;
-  let recordingState = "idle";
-  let animationFrameId = null;
-
-  musicRestart.textContent = "↺ Restart All (~)";
-
-  // WELCOME SCREEN
-
-  modeForm.addEventListener("submit", function (event) {
-    event.preventDefault();
-
-    const choice = modeForm.querySelector(
-      'input[name="visual-mode"]:checked'
-    );
-
-    if (!choice) return;
-
-    studioScreen.dataset.visualMode = choice.value;
-    welcomeScreen.hidden = true;
-    studioScreen.hidden = false;
-
-    requestAnimationFrame(layoutVisualMembers);
-    window.scrollTo(0, 0);
-  });
-
-  // ADD MEMBER
-
-  function showError(message) {
-    shortcutError.textContent = message;
-    shortcutError.hidden = false;
-  }
-
-  function clearError() {
-    shortcutError.textContent = "";
-    shortcutError.hidden = true;
-  }
-
-  function closeModal() {
-    modal.classList.remove("open");
-    clearError();
-  }
-
-  openButton.addEventListener("click", function () {
-    if (isMemberEditingLocked()) return;
-    modal.classList.add("open");
-    nameInput.focus();
-  });
-
-  closeButton.addEventListener("click", closeModal);
-
-  modal.addEventListener("click", function (event) {
-    if (event.target === modal) closeModal();
-  });
-
-  function validShortcut(key, currentMember = null) {
-    if (!/^[A-Z0-9]$/.test(key)) {
-      return "Choose a letter (A-Z) or number (0-9).";
-    }
-
-    if (members.some(member =>
-      member !== currentMember &&
-      member.shortcut === key
-    )) {
-      return "This key is already assigned.";
-    }
-
-    return "";
-  }
-
-  shortcutInput.addEventListener("keydown", function (event) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const key = event.key.toUpperCase();
-
-    if (key === "ESCAPE") {
-      closeModal();
-      return;
-    }
-
-    if (event.ctrlKey || event.altKey || event.metaKey) {
-      showError("Choose a key without Ctrl, Alt or Command.");
-      return;
-    }
-
-    const error = validShortcut(key);
-
-    if (error) {
-      showError(error);
-      return;
-    }
-
-    selectedShortcut = key;
-    shortcutInput.value = key;
-    clearError();
-  });
-
-  // CLASSIC MEMBER ROWS
-
-  function createClassicPhoto(member) {
-    if (member.photoURL) {
-      const image = document.createElement("img");
-      image.className = "classic-photo";
-      image.src = member.photoURL;
-      image.alt = member.name;
-      return image;
-    }
-
-    const letter = document.createElement("div");
-    letter.className = "classic-photo";
-    letter.textContent = member.name.charAt(0).toUpperCase();
-
-    letter.style.cssText =
-      "display:flex;align-items:center;justify-content:center;" +
-      "font-weight:bold;font-size:20px";
-
-    letter.style.color = member.color;
-    return letter;
-  }
-
-  function createClassicRow(member) {
-    const row = document.createElement("div");
-    row.className = "classic-member";
-    row.style.setProperty("--member-color", member.color);
-
-    const crown = document.createElement("span");
-    crown.className = "classic-crown";
-    crown.textContent = "♕";
-    crown.setAttribute("aria-hidden", "true");
-
-    const photo = createClassicPhoto(member);
-
-    const info = document.createElement("div");
-    info.className = "classic-info";
-
-    const top = document.createElement("div");
-    top.className = "classic-info-top";
-
-    const name = document.createElement("span");
-    name.className = "classic-name";
-    name.textContent = member.name;
-
-    const seconds = document.createElement("span");
-    seconds.className = "classic-seconds";
-    seconds.textContent = "0.0s";
-
-    top.append(name, seconds);
-
-    const progress = document.createElement("div");
-    progress.className = "classic-progress";
-
-    const fill = document.createElement("div");
-    fill.className = "classic-progress-fill";
-    fill.style.width = "0%";
-
-    progress.appendChild(fill);
-
-    const percentage = document.createElement("span");
-    percentage.className = "classic-percentage";
-    percentage.textContent = "0%";
-
-    info.append(top, progress, percentage);
-    row.append(crown, photo, info);
-
-    member.classicUI = {
-      row,
-      photo,
-      progress,
-      seconds,
-      fill,
-      percentage
-    };
-
-    return row;
-  }
-
-  function renderClassicMembers() {
-    if (!classicMembers) return;
-
-    const fragment = document.createDocumentFragment();
-
-    members.forEach(member => {
-      fragment.appendChild(createClassicRow(member));
-    });
-
-    classicMembers.replaceChildren(fragment);
-  }
-
-  // ANIMATED CLASSIC RANKING
-
-  function sortClassicRanking() {
-    if (!classicMembers || members.length < 2) return;
-
-    const ranking = members.slice().sort(function (a, b) {
-      const difference = b.totalSeconds - a.totalSeconds;
-
-      return Math.abs(difference) < 0.005
-        ? members.indexOf(a) - members.indexOf(b)
-        : difference;
-    });
-
-    const currentRows = Array.from(classicMembers.children);
-
-    if (ranking.every((member, i) =>
-      currentRows[i] === member.classicUI.row
-    )) {
-      return;
-    }
-
-    const before = new Map();
-
-    currentRows.forEach(function (row) {
-      if (typeof row.getAnimations === "function") {
-        row.getAnimations().forEach(animation => {
-          if (animation.id === "rank-move") {
-            animation.cancel();
-          }
-        });
-      }
-
-      before.set(row, row.getBoundingClientRect().top);
-    });
-
-    ranking.forEach(member => {
-      classicMembers.appendChild(member.classicUI.row);
-    });
-
-    if (
-      window.matchMedia &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
-      return;
-    }
-
-    ranking.forEach(function (member) {
-      const row = member.classicUI.row;
-
-      const distance =
-        before.get(row) -
-        row.getBoundingClientRect().top;
-
-      if (
-        Math.abs(distance) < 1 ||
-        typeof row.animate !== "function"
-      ) {
-        return;
-      }
-
-      const animation = row.animate(
-        [
-          { transform: `translateY(${distance}px)` },
-          { transform: "translateY(0)" }
-        ],
-        {
-          duration: 460,
-          easing: "cubic-bezier(0.22, 1, 0.36, 1)"
-        }
-      );
-
-      animation.id = "rank-move";
-    });
-  }
-
-  function updateClassicValues() {
-    members.forEach(function (member) {
-      const ui = member.classicUI;
-      if (!ui) return;
-
-      ui.seconds.textContent =
-        member.totalSeconds.toFixed(1) + "s";
-
-      ui.percentage.textContent =
-        member.percentage === 0
-          ? "0%"
-          : member.percentage.toFixed(1) + "%";
-
-      ui.fill.style.width =
-        Math.max(0, Math.min(100, member.percentage)) + "%";
-
-      const singing =
-        recordingState === "recording" &&
-        member.activeLine !== null &&
-        !musicAudio.paused;
-
-      ui.photo.style.boxShadow = singing
-        ? `0 0 8px ${member.color}, 0 0 17px ${member.color}`
-        : "";
-
-      ui.progress.style.boxShadow = singing
-        ? `0 0 9px ${member.color}`
-        : "";
-    });
-
-    sortClassicRanking();
-  }
-
-  function updateWinnerCrown() {
-    const winner = recordingState === "finished"
-      ? members.reduce((best, member) => {
-          if (
-            member.totalSeconds > 0 &&
-            (!best || member.totalSeconds > best.totalSeconds)
-          ) {
-            return member;
-          }
-          return best;
-        }, null)
-      : null;
-
-    if (classicLayout) {
-      classicLayout.classList.toggle(
-        "finished",
-        recordingState === "finished"
-      );
-    }
-
-    members.forEach(member => {
-      if (member.classicUI) {
-        member.classicUI.row.classList.toggle(
-          "winner",
-          member === winner
-        );
-      }
-
-      if (member.visualUI) {
-        member.visualUI.node.classList.toggle(
-          "is-winner",
-          member === winner
-        );
-      }
-    });
-  }
+  const KEYS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+  let chosenKey = '';
+  let musicURL = null;
+  let musicReady = false;
+  let recording = 'idle';
+  let frame = null;
+  let editingMember = null;
+  let editingKey = '';
+
+  restartButton.textContent = '↺ Restart All (~)';
 
   // ==========================================
-  // VISUAL LINE DISTRIBUTION — CSS
+  // GLOBAL COMPONENT STYLES
   // ==========================================
 
-  const visualStyles = document.createElement("style");
-  visualStyles.id = "visual-line-distribution-styles";
-
-  visualStyles.textContent = `
-    #studio-screen[data-visual-mode="visual"] .preview {
-      aspect-ratio: 16 / 9;
-      max-width: 960px;
-      background: #101018 !important;
-    }
-
-    #visual-layout {
-      position: relative;
-      padding: clamp(6px, 2vw, 22px);
-      overflow: hidden;
-    }
-
-    #visual-stage {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      min-width: 0;
-      min-height: 0;
-    }
-
-    #visual-members {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-    }
-
-    #visual-empty-state {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      pointer-events: none;
-    }
-
-    #visual-stage:has(#visual-members:not(:empty))
-    #visual-empty-state {
-      display: none;
-    }
-
-    .visual-member {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: var(--visual-card-width, 125px);
-      transform: translate(-50%, -50%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      gap: 2px;
-      padding: 0;
-      text-align: center;
-      cursor: grab;
-      touch-action: none;
-      user-select: none;
-      -webkit-user-select: none;
-      pointer-events: auto;
-      z-index: 1;
-    }
-
-    .visual-member.is-dragging {
-      z-index: 5;
-      cursor: grabbing;
-    }
-
-    .visual-avatar {
-      position: relative;
-      flex: none;
-      width: var(--visual-photo-size, 96px);
-      height: var(--visual-photo-size, 96px);
-      transition: transform .19s ease, filter .19s ease;
-    }
-
-    .visual-progress-ring {
-      position: absolute;
-      inset: 0;
-      display: block;
-      width: 100%;
-      height: 100%;
-      overflow: visible;
-      pointer-events: none;
-    }
-
-    .visual-ring-track,
-    .visual-ring-fill {
-      fill: none;
-      stroke-width: 7;
-    }
-
-    .visual-ring-track {
-      stroke: #393846;
-    }
-
-    .visual-ring-fill {
-      stroke: var(--member-color, #ff80c8);
-      stroke-linecap: round;
-      transform: rotate(-90deg);
-      transform-origin: 50% 50%;
-      transition: stroke-dashoffset .14s linear;
-    }
-
-    .visual-photo,
-    .visual-initial {
-      position: absolute;
-      inset: 11%;
-      width: 78%;
-      height: 78%;
-      border-radius: 50%;
-      border: 2px solid var(--member-color, #ff80c8);
-      background: #292938;
-      box-shadow: 0 0 9px
-        color-mix(in srgb, var(--member-color) 55%, transparent);
-    }
-
-    .visual-photo {
-      object-fit: cover;
-      display: block;
-      pointer-events: none;
-      -webkit-user-drag: none;
-    }
-
-    .visual-initial {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--member-color, #ff80c8);
-      font-size: calc(var(--visual-photo-size, 96px) * .35);
-      font-weight: 800;
-    }
-
-    .visual-photo[hidden],
-    .visual-initial[hidden] {
-      display: none !important;
-    }
-
-    .visual-crown {
-      position: absolute;
-      left: 50%;
-      top: -27%;
-      transform: translateX(-50%);
-      font-size: calc(var(--visual-photo-size, 96px) * .36);
-      line-height: 1;
-      color: #fff;
-      visibility: hidden;
-      filter:
-        drop-shadow(0 0 5px var(--member-color))
-        drop-shadow(0 0 8px var(--member-color));
-      pointer-events: none;
-    }
-
-    .visual-member.is-winner .visual-crown {
-      visibility: visible;
-    }
-
-    .visual-member-info {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1px;
-      width: 100%;
-      min-width: 0;
-      font-variant-numeric: tabular-nums;
-      line-height: 1.14;
-    }
-
-    .visual-name {
-      width: 100%;
-      color: var(--member-color, #ff80c8);
-      font-weight: 800;
-      font-size: clamp(
-        8px,
-        calc(var(--visual-photo-size, 96px) * .14),
-        15px
-      );
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-    }
-
-    .visual-seconds {
-      color: white;
-      font-size: clamp(
-        8px,
-        calc(var(--visual-photo-size, 96px) * .125),
-        14px
-      );
-      font-weight: 700;
-    }
-
-    .visual-percentage {
-      color: #cccbd7;
-      font-size: clamp(
-        8px,
-        calc(var(--visual-photo-size, 96px) * .115),
-        13px
-      );
-    }
-
-    .visual-member.is-singing {
-      z-index: 3;
-    }
-
-    .visual-member.is-singing .visual-avatar {
-      transform: scale(1.12);
-      filter:
-        drop-shadow(0 0 8px var(--member-color))
-        drop-shadow(0 0 12px var(--member-color));
-    }
-
-    .visual-member.is-dragging .visual-avatar {
-      transform: none;
-    }
-
-    #visual-drag-hint {
-      position: absolute;
-      bottom: 1%;
-      left: 0;
-      right: 0;
-      width: 100%;
-      margin: 0;
-      font-size: clamp(8px, 1.15vw, 12px);
-      color: #9996ab;
-      pointer-events: none;
-    }
-
-    #visual-drag-hint[hidden] {
-      display: none !important;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .visual-avatar,
-      .visual-ring-fill {
-        transition: none;
-      }
-    }
-  `;
-
-  document.head.appendChild(visualStyles);
-
-  // ==========================================
-  // VISUAL — POSITIONS AND DRAGGING
-  // ==========================================
-
-  const VISUAL_CIRCUMFERENCE = 2 * Math.PI * 53;
-
-  function visualColumnCount(count) {
-    if (count <= 3) return Math.max(1, count);
-    if (count <= 6) return 3;
-    if (count <= 12) return 4;
-    return 5;
-  }
-
-  function clampVisualPosition(member) {
-    if (
-      !visualStage ||
-      !member.visualUI ||
-      !member.visualPosition
-    ) {
-      return;
-    }
-
-    const rect = visualStage.getBoundingClientRect();
-
-    if (!rect.width || !rect.height) return;
-
-    const card = member.visualUI.node;
-
-    const horizontalPadding = Math.min(
-      48,
-      card.offsetWidth / rect.width * 50
-    );
-
-    const verticalPadding = Math.min(
-      48,
-      card.offsetHeight / rect.height * 50
-    );
-
-    member.visualPosition.x = Math.min(
-      100 - horizontalPadding,
-      Math.max(horizontalPadding, member.visualPosition.x)
-    );
-
-    member.visualPosition.y = Math.min(
-      100 - verticalPadding,
-      Math.max(verticalPadding, member.visualPosition.y)
-    );
-  }
-
-  function moveVisualMember(member) {
-    if (!member.visualUI || !member.visualPosition) return;
-
-    clampVisualPosition(member);
-
-    member.visualUI.node.style.left =
-      member.visualPosition.x + "%";
-
-    member.visualUI.node.style.top =
-      member.visualPosition.y + "%";
-  }
-
-  function layoutVisualMembers() {
-    if (!visualStage || !visualMembers || members.length === 0) {
-      return;
-    }
-
-    const rect = visualStage.getBoundingClientRect();
-
-    if (!rect.width || !rect.height) return;
-
-    const columns = visualColumnCount(members.length);
-    const rows = Math.ceil(members.length / columns);
-
-    const cellWidth = rect.width / columns;
-    const cellHeight = rect.height / rows;
-
-    const photoSize = Math.max(
-      25,
-      Math.min(
-        116,
-        Math.floor(Math.min(
-          cellWidth * .73,
-          cellHeight * .64
-        ))
-      )
-    );
-
-    const cardWidth = Math.max(
-      35,
-      Math.min(cellWidth * .94, photoSize * 1.47)
-    );
-
-    visualStage.style.setProperty(
-      "--visual-photo-size",
-      photoSize + "px"
-    );
-
-    visualStage.style.setProperty(
-      "--visual-card-width",
-      cardWidth + "px"
-    );
-
-    members.forEach(function (member, index) {
-      const row = Math.floor(index / columns);
-      const indexInRow = index % columns;
-
-      const countInRow = Math.min(
-        columns,
-        members.length - row * columns
-      );
-
-      if (
-        !member.visualPosition ||
-        !member.visualPosition.custom
-      ) {
-        member.visualPosition = {
-          x: (indexInRow + 1) / (countInRow + 1) * 100,
-          y: (row + .5) / rows * 100,
-          custom: false
-        };
-      }
-
-      moveVisualMember(member);
-    });
-  }
-
-  function attachVisualDrag(member, node) {
-    let drag = null;
-
-    node.addEventListener("pointerdown", function (event) {
-      if (
-        isMemberEditingLocked() ||
-        (event.pointerType === "mouse" && event.button !== 0)
-      ) {
-        return;
-      }
-
-      const rect = visualStage.getBoundingClientRect();
-
-      if (!rect.width || !rect.height) return;
-
-      event.preventDefault();
-
-      drag = {
-        pointerId: event.pointerId,
-        clientX: event.clientX,
-        clientY: event.clientY,
-        x: member.visualPosition.x,
-        y: member.visualPosition.y
-      };
-
-      node.classList.add("is-dragging");
-      node.setPointerCapture(event.pointerId);
-    });
-
-    node.addEventListener("pointermove", function (event) {
-      if (!drag || event.pointerId !== drag.pointerId) return;
-
-      const rect = visualStage.getBoundingClientRect();
-
-      if (!rect.width || !rect.height) return;
-
-      member.visualPosition = {
-        x: drag.x +
-          (event.clientX - drag.clientX) / rect.width * 100,
-
-        y: drag.y +
-          (event.clientY - drag.clientY) / rect.height * 100,
-
-        custom: true
-      };
-
-      moveVisualMember(member);
-    });
-
-    function stopDrag(event) {
-      if (!drag || event.pointerId !== drag.pointerId) return;
-
-      drag = null;
-      node.classList.remove("is-dragging");
-
-      if (node.hasPointerCapture(event.pointerId)) {
-        node.releasePointerCapture(event.pointerId);
-      }
-    }
-
-    node.addEventListener("pointerup", stopDrag);
-    node.addEventListener("pointercancel", stopDrag);
-
-    node.addEventListener("lostpointercapture", function () {
-      drag = null;
-      node.classList.remove("is-dragging");
-    });
-  }
-
-  // ==========================================
-  // VISUAL — MEMBER RENDERING
-  // ==========================================
-
-  function createVisualMember(member) {
-    const node = visualTemplate.content
-      .firstElementChild.cloneNode(true);
-
-    node.style.setProperty("--member-color", member.color);
-
-    node.setAttribute(
-      "aria-label",
-      "Move " + member.name
-    );
-
-    const image = node.querySelector(".visual-photo");
-    const initial = node.querySelector(".visual-initial");
-    const ring = node.querySelector(".visual-ring-fill");
-    const name = node.querySelector(".visual-name");
-    const seconds = node.querySelector(".visual-seconds");
-    const percentage = node.querySelector(".visual-percentage");
-
-    if (member.photoURL) {
-      image.src = member.photoURL;
-      image.alt = member.name;
-      image.hidden = false;
-      initial.hidden = true;
-    } else {
-      image.removeAttribute("src");
-      image.hidden = true;
-      initial.hidden = false;
-      initial.textContent =
-        member.name.charAt(0).toUpperCase();
-    }
-
-    name.textContent = member.name;
-
-    ring.style.strokeDasharray =
-      String(VISUAL_CIRCUMFERENCE);
-
-    ring.style.strokeDashoffset =
-      String(VISUAL_CIRCUMFERENCE);
-
-    member.visualUI = {
-      node,
-      ring,
-      seconds,
-      percentage
-    };
-
-    attachVisualDrag(member, node);
-
-    return node;
-  }
-
-  function renderVisualMembers() {
-    if (!visualMembers || !visualTemplate) return;
-
-    const fragment = document.createDocumentFragment();
-
-    members.forEach(member => {
-      fragment.appendChild(createVisualMember(member));
-    });
-
-    visualMembers.replaceChildren(fragment);
-
-    if (visualDragHint) {
-      visualDragHint.hidden =
-        members.length === 0 ||
-        isMemberEditingLocked();
-    }
-
-    layoutVisualMembers();
-  }
-
-  function updateVisualValues() {
-    members.forEach(function (member) {
-      const ui = member.visualUI;
-
-      if (!ui) return;
-
-      ui.seconds.textContent =
-        member.totalSeconds.toFixed(1) + "s";
-
-      ui.percentage.textContent =
-        member.percentage === 0
-          ? "0%"
-          : member.percentage.toFixed(1) + "%";
-
-      const fraction = Math.max(
-        0,
-        Math.min(1, member.percentage / 100)
-      );
-
-      ui.ring.style.strokeDashoffset = String(
-        VISUAL_CIRCUMFERENCE * (1 - fraction)
-      );
-
-      const singing =
-        recordingState === "recording" &&
-        member.activeLine !== null &&
-        !musicAudio.paused;
-
-      ui.node.classList.toggle("is-singing", singing);
-    });
-  }
-
-  if (visualStage && typeof ResizeObserver !== "undefined") {
-    const visualObserver = new ResizeObserver(layoutVisualMembers);
-    visualObserver.observe(visualStage);
-  } else {
-    window.addEventListener("resize", layoutVisualMembers);
-  }
-
-  // ==========================================
-  // MEMBER CARDS
-  // ==========================================
-
-  function isMemberEditingLocked() {
-    return (
-      recordingState === "recording" ||
-      recordingState === "awaitingFinish"
-    );
-  }
-
-  function renderMemberCards() {
-    const fragment = document.createDocumentFragment();
-
-    members.forEach(function (member) {
-      const card = document.createElement("div");
-
-      card.className = "member-card";
-      card.style.setProperty("--member-color", member.color);
-      card.tabIndex = 0;
-      card.setAttribute("role", "button");
-
-      card.setAttribute(
-        "aria-label",
-        "Edit member " + member.name
-      );
-
-      if (member.photoURL) {
-        const image = document.createElement("img");
-
-        image.src = member.photoURL;
-        image.alt = member.name;
-
-        card.appendChild(image);
-      }
-
-      const title = document.createElement("p");
-      title.textContent = member.name;
-
-      const badge = document.createElement("span");
-      badge.className = "member-shortcut";
-      badge.textContent = "Key: " + member.shortcut;
-
-      const hint = document.createElement("div");
-      hint.className = "member-card-edit-hint";
-      hint.textContent = "Click to edit ✎";
-
-      card.append(title, badge, hint);
-
-      card.addEventListener("click", function () {
-        openSettings(member);
-      });
-
-      card.addEventListener("keydown", function (event) {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          openSettings(member);
-        }
-      });
-
-      fragment.appendChild(card);
-    });
-
-    memberList.replaceChildren(fragment);
-  }
-
-  // ==========================================
-  // MEMBER SETTINGS STYLES
-  // ==========================================
-
-  const settingsStyles = document.createElement("style");
-
-  settingsStyles.textContent = `
-    .member-card[role="button"] {
+  const addCSS = css => {
+    const style = document.createElement('style');
+    style.textContent = css;
+    document.head.append(style);
+  };
+
+  addCSS(`
+    .member-card[role=button] {
       cursor: pointer;
-      transition: transform .2s ease, border-color .2s ease;
       border: 1px solid transparent;
+      transition: .2s;
     }
 
-    .member-card[role="button"]:hover {
-      transform: translateY(-3px);
+    .member-card[role=button]:hover {
       border-color: var(--member-color);
-    }
-
-    .member-card[role="button"]:focus-visible {
-      outline: 2px solid var(--member-color);
-      outline-offset: 3px;
+      transform: translateY(-3px);
     }
 
     .member-card-edit-hint {
@@ -1035,28 +90,23 @@ document.addEventListener("DOMContentLoaded", function () {
       font-size: 13px;
       font-weight: bold;
       color: #e8e3ee;
-      margin-top: 4px;
     }
 
-    .edit-member-form input[type="text"],
-    .edit-member-form input[type="file"] {
+    .edit-member-form input[type=text],
+    .edit-member-form input[type=file] {
       width: 100%;
       min-width: 0;
+      padding: 11px;
       background: #292938;
       border: 1px solid #454555;
       border-radius: 8px;
-      padding: 11px;
-      color: #fff;
-      font: inherit;
+      color: white;
     }
 
-    .edit-member-form input[type="color"] {
+    .edit-member-form input[type=color] {
       width: 60px;
       height: 40px;
       cursor: pointer;
-      border: 1px solid #454555;
-      border-radius: 7px;
-      background: transparent;
     }
 
     .edit-member-form .edit-shortcut {
@@ -1085,17 +135,11 @@ document.addEventListener("DOMContentLoaded", function () {
       object-fit: cover;
     }
 
-    .edit-member-form .small-hint {
-      font-size: 12px;
-      color: #aaa5ba;
-      margin: 0;
-    }
-
     .edit-member-form .edit-actions {
       display: flex;
-      gap: 9px;
       flex-wrap: wrap;
-      margin-top: 12px;
+      gap: 9px;
+      margin-top: 10px;
     }
 
     .edit-member-form .delete-member-button {
@@ -1105,32 +149,951 @@ document.addEventListener("DOMContentLoaded", function () {
 
     .edit-member-form .cancel-member-button {
       background: #383443;
-      color: #fff;
+      color: white;
     }
 
-    .edit-member-form .edit-error {
-      font-size: 13px;
+    .edit-error {
       color: #ff9b9b;
-      margin: 0;
+      font-size: 13px;
     }
 
     #edit-member-title {
       color: var(--accent);
     }
-  `;
 
-  document.head.appendChild(settingsStyles);
+    /* VISUAL PREVIEW */
+
+    #studio-screen[data-visual-mode=visual] .preview {
+      aspect-ratio: 16 / 9;
+      background: #101018 !important;
+    }
+
+    #visual-layout {
+      position: relative;
+      padding: clamp(6px, 2vw, 22px);
+      overflow: hidden;
+    }
+
+    #visual-stage {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    #visual-members {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    #visual-empty-state {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      pointer-events: none;
+    }
+
+    #visual-stage:has(#visual-members:not(:empty))
+    #visual-empty-state {
+      display: none;
+    }
+
+    .visual-member {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: var(--visual-card-width, 125px);
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      text-align: center;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+      pointer-events: auto;
+      z-index: 1;
+    }
+
+    .visual-member.is-dragging {
+      z-index: 5;
+      cursor: grabbing;
+    }
+
+    .visual-avatar {
+      position: relative;
+      flex: none;
+      width: var(--visual-photo-size, 96px);
+      height: var(--visual-photo-size, 96px);
+      transition: transform .19s, filter .19s;
+    }
+
+    .visual-progress-ring {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      pointer-events: none;
+    }
+
+    .visual-ring-track,
+    .visual-ring-fill {
+      fill: none;
+      stroke-width: 7;
+    }
+
+    .visual-ring-track {
+      stroke: #393846;
+    }
+
+    .visual-ring-fill {
+      stroke: var(--member-color);
+      stroke-linecap: round;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+      transition: stroke-dashoffset .14s;
+    }
+
+    .visual-photo,
+    .visual-initial {
+      position: absolute;
+      inset: 11%;
+      width: 78%;
+      height: 78%;
+      border-radius: 50%;
+      border: 2px solid var(--member-color);
+      background: #292938;
+      box-shadow: 0 0 9px var(--member-color);
+    }
+
+    .visual-photo {
+      object-fit: cover;
+      pointer-events: none;
+      -webkit-user-drag: none;
+    }
+
+    .visual-initial {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: var(--member-color);
+      font-size: calc(var(--visual-photo-size, 96px) * .35);
+      font-weight: 800;
+    }
+
+    .visual-photo[hidden],
+    .visual-initial[hidden] {
+      display: none !important;
+    }
+
+    .visual-crown {
+      position: absolute;
+      left: 50%;
+      top: -27%;
+      transform: translateX(-50%);
+      font-size: calc(var(--visual-photo-size, 96px) * .36);
+      color: white;
+      visibility: hidden;
+      filter: drop-shadow(0 0 7px var(--member-color));
+      pointer-events: none;
+    }
+
+    .visual-member.is-winner .visual-crown {
+      visibility: visible;
+    }
+
+    .visual-member-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+      width: 100%;
+      line-height: 1.14;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .visual-name {
+      width: 100%;
+      font-size: clamp(
+        8px,
+        calc(var(--visual-photo-size, 96px) * .14),
+        15px
+      );
+      font-weight: 800;
+      color: var(--member-color);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .visual-seconds,
+    .visual-percentage {
+      font-size: clamp(
+        8px,
+        calc(var(--visual-photo-size, 96px) * .12),
+        14px
+      );
+    }
+
+    .visual-seconds {
+      color: white;
+      font-weight: 700;
+    }
+
+    .visual-percentage {
+      color: #cccbd7;
+    }
+
+    .visual-member.is-singing {
+      z-index: 3;
+    }
+
+    .visual-member.is-singing .visual-avatar {
+      transform: scale(1.12);
+      filter:
+        drop-shadow(0 0 8px var(--member-color))
+        drop-shadow(0 0 12px var(--member-color));
+    }
+
+    #visual-drag-hint {
+      position: absolute;
+      bottom: 1%;
+      left: 0;
+      right: 0;
+      font-size: 11px;
+      color: #9996ab;
+      pointer-events: none;
+      margin: 0;
+    }
+
+    #visual-drag-hint[hidden] {
+      display: none !important;
+    }
+
+    /* GROUP PRESETS */
+
+    .group-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      background: #1a1a26;
+      border: 1px solid #464053;
+      border-radius: 12px;
+      padding: 13px;
+    }
+
+    .group-card-photos {
+      display: flex;
+      align-items: center;
+      min-height: 45px;
+    }
+
+    .group-card-photos img,
+    .group-card-photos span {
+      width: 43px;
+      height: 43px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #34313f;
+      border: 2px solid var(--member-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      margin-left: -8px;
+    }
+
+    .group-card-photos :first-child {
+      margin-left: 0;
+    }
+
+    .group-card-details {
+      flex: 1;
+      min-width: 100px;
+    }
+
+    .group-card-name {
+      margin: 0;
+      color: white;
+      overflow-wrap: anywhere;
+    }
+
+    .group-card-count {
+      margin: 4px 0 0;
+      color: #bbb4c8;
+      font-size: 12px;
+    }
+
+    .group-card-actions button {
+      padding: 9px 13px;
+    }
+
+    .group-editor-member {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      background: #292837;
+      border: 1px solid #464053;
+      border-radius: 10px;
+      flex-wrap: wrap;
+    }
+
+    .group-editor-member img,
+    .group-editor-member span {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--member-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: var(--member-color);
+    }
+
+    .group-editor-details {
+      flex: 1;
+      min-width: 90px;
+      overflow-wrap: anywhere;
+    }
+
+    .group-editor-details strong {
+      display: block;
+      color: var(--member-color);
+    }
+
+    .group-editor-details small {
+      color: #c3bdcb;
+    }
+
+    #group-member-shortcut {
+      cursor: pointer;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .groups-actions button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .visual-avatar,
+      .visual-ring-fill {
+        transition: none;
+      }
+    }
+  `);
 
   // ==========================================
-  // MEMBER SETTINGS MODAL
+  // COMMON HELPERS
   // ==========================================
 
-  const settingsModal = document.createElement("div");
+  function isLocked() {
+    return recording === 'recording' ||
+           recording === 'awaitingFinish';
+  }
 
-  settingsModal.className = "modal-overlay";
-  settingsModal.id = "member-settings-modal";
+  function groupDialogOpen() {
+    return [groupsModal, editorModal, loadModal]
+      .some(element => element.classList.contains('open'));
+  }
 
-  settingsModal.innerHTML = `
+  function show(element) {
+    element.classList.add('open');
+  }
+
+  function hide(element) {
+    element.classList.remove('open');
+  }
+
+  function validKey(key, except = null) {
+    if (!/^[A-Z0-9]$/.test(key)) {
+      return 'Choose a letter (A-Z) or number (0-9).';
+    }
+
+    if (members.some(member =>
+      member !== except &&
+      member.shortcut === key
+    )) {
+      return 'This key is already assigned.';
+    }
+
+    return '';
+  }
+
+  function newMember(data) {
+    return {
+      name: data.name,
+      color: data.color,
+      shortcut: data.shortcut,
+      photoURL: data.photoURL || null,
+      lines: [],
+      activeLine: null,
+      totalSeconds: 0,
+      percentage: 0,
+      classicUI: null,
+      visualUI: null,
+      visualPosition: data.visualPosition || null
+    };
+  }
+
+  function positionCopy(position) {
+    if (
+      !position ||
+      !Number.isFinite(position.x) ||
+      !Number.isFinite(position.y)
+    ) {
+      return null;
+    }
+
+    return {
+      x: Math.max(0, Math.min(100, position.x)),
+      y: Math.max(0, Math.min(100, position.y)),
+      custom: !!position.custom
+    };
+  }
+
+  // ==========================================
+  // WELCOME SCREEN
+  // ==========================================
+
+  modeForm.addEventListener('submit', event => {
+    event.preventDefault();
+
+    const choice = modeForm.querySelector(
+      'input[name="visual-mode"]:checked'
+    );
+
+    if (!choice) return;
+
+    studio.dataset.visualMode = choice.value;
+    welcome.hidden = true;
+    studio.hidden = false;
+
+    requestAnimationFrame(layoutVisual);
+    window.scrollTo(0, 0);
+  });
+
+  // ==========================================
+  // ADD MEMBER
+  // ==========================================
+
+  $('open-member-modal').addEventListener('click', () => {
+    if (isLocked()) return;
+    show(memberModal);
+    memberName.focus();
+  });
+
+  $('close-member-modal').addEventListener('click', () => {
+    hide(memberModal);
+  });
+
+  memberModal.addEventListener('click', event => {
+    if (event.target === memberModal) {
+      hide(memberModal);
+    }
+  });
+
+  memberShortcut.addEventListener('keydown', event => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (event.key === 'Escape') {
+      hide(memberModal);
+      return;
+    }
+
+    if (event.altKey || event.ctrlKey || event.metaKey) {
+      return;
+    }
+
+    const key = event.key.toUpperCase();
+    const error = validKey(key);
+
+    shortcutError.hidden = !error;
+    shortcutError.textContent = error;
+
+    if (!error) {
+      chosenKey = key;
+      memberShortcut.value = key;
+    }
+  });
+
+  memberForm.addEventListener('submit', event => {
+    event.preventDefault();
+
+    if (isLocked()) return;
+
+    const name = memberName.value.trim();
+
+    if (
+      members.length >= 20 ||
+      !name ||
+      !chosenKey ||
+      validKey(chosenKey)
+    ) {
+      shortcutError.textContent = members.length >= 20
+        ? 'Maximum 20 members.'
+        : 'Choose a free keyboard shortcut.';
+
+      shortcutError.hidden = false;
+      return;
+    }
+
+    const photo = memberImage.files[0];
+
+    members.push(newMember({
+      name,
+      color: memberColor.value,
+      shortcut: chosenKey,
+      photoURL: photo ? URL.createObjectURL(photo) : null
+    }));
+
+    chosenKey = '';
+    memberForm.reset();
+    shortcutError.hidden = true;
+
+    hide(memberModal);
+    renderMembers();
+  });
+
+  // ==========================================
+  // CLASSIC LINE DISTRIBUTION
+  // ==========================================
+
+  function classicPhoto(member) {
+    if (member.photoURL) {
+      const image = document.createElement('img');
+      image.className = 'classic-photo';
+      image.src = member.photoURL;
+      image.alt = member.name;
+      return image;
+    }
+
+    const element = document.createElement('div');
+
+    element.className = 'classic-photo';
+    element.textContent = member.name.charAt(0).toUpperCase();
+
+    element.style.cssText =
+      'display:flex;align-items:center;' +
+      'justify-content:center;font-weight:bold;font-size:20px';
+
+    element.style.color = member.color;
+    return element;
+  }
+
+  function classicRow(member) {
+    const row = document.createElement('div');
+    row.className = 'classic-member';
+
+    row.style.setProperty('--member-color', member.color);
+
+    const crown = document.createElement('span');
+    crown.className = 'classic-crown';
+    crown.textContent = '♕';
+
+    const photo = classicPhoto(member);
+
+    const info = document.createElement('div');
+    info.className = 'classic-info';
+
+    const top = document.createElement('div');
+    top.className = 'classic-info-top';
+
+    const name = document.createElement('span');
+    name.className = 'classic-name';
+    name.textContent = member.name;
+
+    const seconds = document.createElement('span');
+    seconds.className = 'classic-seconds';
+    seconds.textContent = '0.0s';
+
+    top.append(name, seconds);
+
+    const progress = document.createElement('div');
+    progress.className = 'classic-progress';
+
+    const fill = document.createElement('div');
+    fill.className = 'classic-progress-fill';
+
+    progress.append(fill);
+
+    const percent = document.createElement('span');
+    percent.className = 'classic-percentage';
+    percent.textContent = '0%';
+
+    info.append(top, progress, percent);
+    row.append(crown, photo, info);
+
+    member.classicUI = {
+      row,
+      photo,
+      progress,
+      fill,
+      seconds,
+      percent
+    };
+
+    return row;
+  }
+
+  function rankClassic() {
+    if (members.length < 2) return;
+
+    const sorted = [...members].sort(
+      (a, b) =>
+        b.totalSeconds - a.totalSeconds ||
+        members.indexOf(a) - members.indexOf(b)
+    );
+
+    if (sorted.every((member, index) =>
+      classicMembers.children[index] === member.classicUI.row
+    )) {
+      return;
+    }
+
+    const before = new Map();
+
+    [...classicMembers.children].forEach(row => {
+      row.getAnimations?.().forEach(animation => {
+        if (animation.id === 'rank-move') {
+          animation.cancel();
+        }
+      });
+
+      before.set(row, row.getBoundingClientRect().top);
+    });
+
+    sorted.forEach(member => {
+      classicMembers.append(member.classicUI.row);
+    });
+
+    if (
+      matchMedia('(prefers-reduced-motion:reduce)').matches
+    ) {
+      return;
+    }
+
+    sorted.forEach(member => {
+      const row = member.classicUI.row;
+      const distance =
+        before.get(row) -
+        row.getBoundingClientRect().top;
+
+      if (Math.abs(distance) > 1 && row.animate) {
+        const animation = row.animate(
+          [
+            { transform: `translateY(${distance}px)` },
+            { transform: 'translateY(0)' }
+          ],
+          {
+            duration: 460,
+            easing: 'cubic-bezier(.22,1,.36,1)'
+          }
+        );
+
+        animation.id = 'rank-move';
+      }
+    });
+  }
+
+  function updateClassic() {
+    members.forEach(member => {
+      const ui = member.classicUI;
+      if (!ui) return;
+
+      ui.seconds.textContent =
+        member.totalSeconds.toFixed(1) + 's';
+
+      ui.percent.textContent = member.percentage
+        ? member.percentage.toFixed(1) + '%'
+        : '0%';
+
+      ui.fill.style.width =
+        Math.max(0, Math.min(100, member.percentage)) + '%';
+
+      const singing =
+        recording === 'recording' &&
+        member.activeLine &&
+        !audio.paused;
+
+      ui.photo.style.boxShadow = singing
+        ? `0 0 8px ${member.color},0 0 17px ${member.color}`
+        : '';
+
+      ui.progress.style.boxShadow = singing
+        ? `0 0 9px ${member.color}`
+        : '';
+    });
+
+    rankClassic();
+  }
+
+  // ==========================================
+  // VISUAL LINE DISTRIBUTION
+  // ==========================================
+
+  const CIRCUMFERENCE = Math.PI * 106;
+
+  function visualCols(count) {
+    if (count <= 3) return Math.max(1, count);
+    if (count <= 6) return 3;
+    if (count <= 12) return 4;
+    return 5;
+  }
+
+  function fitVisual(member) {
+    if (!member.visualUI || !member.visualPosition) {
+      return;
+    }
+
+    const rect = visualStage.getBoundingClientRect();
+
+    if (!rect.width || !rect.height) return;
+
+    const node = member.visualUI.node;
+
+    const paddingX = Math.min(
+      48,
+      node.offsetWidth / rect.width * 50
+    );
+
+    const paddingY = Math.min(
+      48,
+      node.offsetHeight / rect.height * 50
+    );
+
+    member.visualPosition.x = Math.max(
+      paddingX,
+      Math.min(100 - paddingX, member.visualPosition.x)
+    );
+
+    member.visualPosition.y = Math.max(
+      paddingY,
+      Math.min(100 - paddingY, member.visualPosition.y)
+    );
+
+    node.style.left = member.visualPosition.x + '%';
+    node.style.top = member.visualPosition.y + '%';
+  }
+
+  function layoutVisual() {
+    const rect = visualStage.getBoundingClientRect();
+
+    if (!members.length || !rect.width || !rect.height) {
+      return;
+    }
+
+    const columns = visualCols(members.length);
+    const rows = Math.ceil(members.length / columns);
+
+    const width = rect.width / columns;
+    const height = rect.height / rows;
+
+    const size = Math.max(
+      25,
+      Math.min(
+        116,
+        Math.floor(Math.min(width * .73, height * .64))
+      )
+    );
+
+    visualStage.style.setProperty(
+      '--visual-photo-size',
+      size + 'px'
+    );
+
+    visualStage.style.setProperty(
+      '--visual-card-width',
+      Math.max(35, Math.min(width * .94, size * 1.47)) + 'px'
+    );
+
+    members.forEach((member, index) => {
+      if (!member.visualPosition?.custom) {
+        const row = Math.floor(index / columns);
+        const column = index % columns;
+
+        const inRow = Math.min(
+          columns,
+          members.length - row * columns
+        );
+
+        member.visualPosition = {
+          x: (column + 1) / (inRow + 1) * 100,
+          y: (row + .5) / rows * 100,
+          custom: false
+        };
+      }
+
+      fitVisual(member);
+    });
+  }
+
+  function dragVisual(member, node) {
+    let drag = null;
+
+    node.addEventListener('pointerdown', event => {
+      if (
+        isLocked() ||
+        (
+          event.pointerType === 'mouse' &&
+          event.button !== 0
+        )
+      ) {
+        return;
+      }
+
+      const rect = visualStage.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+
+      event.preventDefault();
+
+      drag = {
+        id: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+        px: member.visualPosition.x,
+        py: member.visualPosition.y
+      };
+
+      node.classList.add('is-dragging');
+      node.setPointerCapture(event.pointerId);
+    });
+
+    node.addEventListener('pointermove', event => {
+      if (!drag || event.pointerId !== drag.id) return;
+
+      const rect = visualStage.getBoundingClientRect();
+
+      member.visualPosition = {
+        x: drag.px +
+          (event.clientX - drag.x) / rect.width * 100,
+        y: drag.py +
+          (event.clientY - drag.y) / rect.height * 100,
+        custom: true
+      };
+
+      fitVisual(member);
+    });
+
+    const stop = event => {
+      if (!drag || drag.id !== event.pointerId) return;
+
+      drag = null;
+      node.classList.remove('is-dragging');
+
+      if (node.hasPointerCapture(event.pointerId)) {
+        node.releasePointerCapture(event.pointerId);
+      }
+    };
+
+    node.addEventListener('pointerup', stop);
+    node.addEventListener('pointercancel', stop);
+
+    node.addEventListener('lostpointercapture', () => {
+      drag = null;
+      node.classList.remove('is-dragging');
+    });
+  }
+
+  function visualCard(member) {
+    const node = visualTemplate.content
+      .firstElementChild.cloneNode(true);
+
+    node.style.setProperty(
+      '--member-color',
+      member.color
+    );
+
+    const image = node.querySelector('.visual-photo');
+    const initial = node.querySelector('.visual-initial');
+
+    if (member.photoURL) {
+      image.src = member.photoURL;
+      image.alt = member.name;
+      image.hidden = false;
+      initial.hidden = true;
+    } else {
+      image.hidden = true;
+      initial.hidden = false;
+      initial.textContent =
+        member.name.charAt(0).toUpperCase();
+    }
+
+    node.querySelector('.visual-name').textContent =
+      member.name;
+
+    const ring = node.querySelector('.visual-ring-fill');
+
+    ring.style.strokeDasharray = CIRCUMFERENCE;
+    ring.style.strokeDashoffset = CIRCUMFERENCE;
+
+    member.visualUI = {
+      node,
+      ring,
+      seconds: node.querySelector('.visual-seconds'),
+      percent: node.querySelector('.visual-percentage')
+    };
+
+    dragVisual(member, node);
+
+    return node;
+  }
+
+  function updateVisual() {
+    members.forEach(member => {
+      if (!member.visualUI) return;
+
+      const ui = member.visualUI;
+
+      ui.seconds.textContent =
+        member.totalSeconds.toFixed(1) + 's';
+
+      ui.percent.textContent = member.percentage
+        ? member.percentage.toFixed(1) + '%'
+        : '0%';
+
+      const fraction =
+        Math.max(0, Math.min(100, member.percentage)) / 100;
+
+      ui.ring.style.strokeDashoffset =
+        CIRCUMFERENCE * (1 - fraction);
+
+      ui.node.classList.toggle(
+        'is-singing',
+        recording === 'recording' &&
+        !!member.activeLine &&
+        !audio.paused
+      );
+    });
+  }
+
+  if (window.ResizeObserver) {
+    new ResizeObserver(layoutVisual).observe(visualStage);
+  } else {
+    window.addEventListener('resize', layoutVisual);
+  }
+
+  // ==========================================
+  // EDIT MEMBER WINDOW
+  // ==========================================
+
+  const editOverlay = document.createElement('div');
+
+  editOverlay.id = 'member-settings-modal';
+  editOverlay.className = 'modal-overlay';
+
+  editOverlay.innerHTML = `
     <div class="modal-content"
          role="dialog"
          aria-modal="true"
@@ -1138,51 +1101,63 @@ document.addEventListener("DOMContentLoaded", function () {
 
       <button type="button"
               class="close-modal"
-              id="close-edit-member"
-              aria-label="Close">×</button>
+              id="close-edit-member">×</button>
 
       <h2 id="edit-member-title">Edit Member</h2>
 
       <form id="edit-member-form" class="edit-member-form">
 
-        <div id="edit-photo-preview" class="photo-preview"></div>
+        <div id="edit-photo-preview"
+             class="photo-preview"></div>
 
-        <label for="edit-member-name">Member Name</label>
+        <label for="edit-member-name">
+          Member Name
+        </label>
+
         <input id="edit-member-name"
                type="text"
                maxlength="30"
                required>
 
-        <label for="edit-member-color">Member Color</label>
+        <label for="edit-member-color">
+          Member Color
+        </label>
+
         <input id="edit-member-color" type="color">
 
-        <label for="edit-member-image">Change Photo</label>
-        <input id="edit-member-image" type="file" accept="image/*">
+        <label for="edit-member-image">
+          Change Photo
+        </label>
 
-        <p class="small-hint">
+        <input id="edit-member-image"
+               type="file"
+               accept="image/*">
+
+        <p style="font-size:12px;color:#aaa5ba">
           Leave empty to keep the current photo.
         </p>
 
-        <label style="display:flex;align-items:center;gap:9px;font-weight:normal">
-          <input type="checkbox" id="edit-remove-photo">
+        <label>
+          <input id="edit-remove-photo" type="checkbox">
           Remove current photo
         </label>
 
-        <label for="edit-member-shortcut">Keyboard Shortcut</label>
+        <label for="edit-member-shortcut">
+          Keyboard Shortcut
+        </label>
 
         <input id="edit-member-shortcut"
                class="edit-shortcut"
                type="text"
                readonly
-               required
-               placeholder="Click and press a key">
+               required>
 
-        <p class="edit-error"
-           id="edit-member-error"
-           role="alert"
+        <p id="edit-member-error"
+           class="edit-error"
            hidden></p>
 
         <div class="edit-actions">
+
           <button type="submit">
             Save Changes
           </button>
@@ -1198,224 +1173,170 @@ document.addEventListener("DOMContentLoaded", function () {
                   class="cancel-member-button">
             Cancel
           </button>
-        </div>
 
+        </div>
       </form>
     </div>
   `;
 
-  studioScreen.appendChild(settingsModal);
+  studio.append(editOverlay);
 
-  const editForm = $("edit-member-form");
-  const editName = $("edit-member-name");
-  const editColor = $("edit-member-color");
-  const editImage = $("edit-member-image");
-  const editShortcut = $("edit-member-shortcut");
-  const editRemovePhoto = $("edit-remove-photo");
-  const editPhotoPreview = $("edit-photo-preview");
-  const editError = $("edit-member-error");
-  const deleteButton = $("delete-member");
+  const editName = $('edit-member-name');
+  const editColor = $('edit-member-color');
+  const editImage = $('edit-member-image');
+  const editShortcut = $('edit-member-shortcut');
+  const editError = $('edit-member-error');
+  const editPreview = $('edit-photo-preview');
 
-  let editingMember = null;
-  let pendingShortcut = "";
-
-  function showEditError(message) {
-    editError.textContent = message;
-    editError.hidden = false;
-  }
-
-  function clearEditError() {
-    editError.textContent = "";
+  function closeEdit() {
+    hide(editOverlay);
+    editingMember = null;
     editError.hidden = true;
   }
 
-  function closeSettings() {
-    settingsModal.classList.remove("open");
-    editingMember = null;
-    clearEditError();
-  }
-
-  function showCurrentPhoto(member) {
-    editPhotoPreview.replaceChildren();
-
-    editPhotoPreview.style.setProperty(
-      "--member-color",
-      editColor.value
-    );
-
-    if (member.photoURL) {
-      const image = document.createElement("img");
-
-      image.src = member.photoURL;
-      image.alt = member.name;
-
-      editPhotoPreview.appendChild(image);
-    } else {
-      editPhotoPreview.textContent =
-        member.name.charAt(0).toUpperCase();
-    }
-  }
-
-  function openSettings(member) {
-    if (isMemberEditingLocked()) {
-      status.textContent =
-        "Finish recording before editing members.";
+  function openEdit(member) {
+    if (isLocked()) {
+      setStatus('Finish recording before editing members.');
       return;
     }
 
     editingMember = member;
-    pendingShortcut = member.shortcut;
+    editingKey = member.shortcut;
 
-    editForm.reset();
+    $('edit-member-form').reset();
 
     editName.value = member.name;
     editColor.value = member.color;
     editShortcut.value = member.shortcut;
 
-    showCurrentPhoto(member);
-    clearEditError();
+    editPreview.replaceChildren();
 
-    settingsModal.classList.add("open");
+    editPreview.style.setProperty(
+      '--member-color',
+      member.color
+    );
+
+    if (member.photoURL) {
+      const image = document.createElement('img');
+      image.src = member.photoURL;
+      image.alt = member.name;
+      editPreview.append(image);
+    } else {
+      editPreview.textContent =
+        member.name.charAt(0).toUpperCase();
+    }
+
+    editError.hidden = true;
+    show(editOverlay);
     editName.focus();
   }
 
-  $("close-edit-member").addEventListener("click", closeSettings);
-  $("cancel-edit-member").addEventListener("click", closeSettings);
+  $('close-edit-member').addEventListener('click', closeEdit);
+  $('cancel-edit-member').addEventListener('click', closeEdit);
 
-  settingsModal.addEventListener("click", function (event) {
-    if (event.target === settingsModal) closeSettings();
+  editOverlay.addEventListener('click', event => {
+    if (event.target === editOverlay) {
+      closeEdit();
+    }
   });
 
-  editColor.addEventListener("input", function () {
-    editPhotoPreview.style.setProperty(
-      "--member-color",
+  editColor.addEventListener('input', () => {
+    editPreview.style.setProperty(
+      '--member-color',
       editColor.value
     );
   });
 
-  editShortcut.addEventListener("keydown", function (event) {
+  editShortcut.addEventListener('keydown', event => {
     event.preventDefault();
     event.stopPropagation();
 
+    if (event.key === 'Escape') {
+      closeEdit();
+      return;
+    }
+
     const key = event.key.toUpperCase();
+    const error = validKey(key, editingMember);
 
-    if (key === "ESCAPE") {
-      closeSettings();
-      return;
+    editError.textContent = error;
+    editError.hidden = !error;
+
+    if (!error) {
+      editingKey = key;
+      editShortcut.value = key;
     }
-
-    if (event.ctrlKey || event.altKey || event.metaKey) {
-      showEditError("Choose a key without Ctrl, Alt or Command.");
-      return;
-    }
-
-    const error = validShortcut(key, editingMember);
-
-    if (error) {
-      showEditError(error);
-      return;
-    }
-
-    pendingShortcut = key;
-    editShortcut.value = key;
-    clearEditError();
   });
 
-  // ==========================================
-  // SAVE MEMBER CHANGES
-  // ==========================================
-
-  editForm.addEventListener("submit", function (event) {
+  $('edit-member-form').addEventListener('submit', event => {
     event.preventDefault();
 
-    if (!editingMember || isMemberEditingLocked()) return;
+    if (!editingMember || isLocked()) return;
 
-    const newName = editName.value.trim();
+    const name = editName.value.trim();
+    const error = validKey(editingKey, editingMember);
+    const photo = editImage.files[0];
 
-    if (!newName) {
-      showEditError("Enter a member name.");
-      return;
-    }
+    if (
+      !name ||
+      error ||
+      (photo && !photo.type.startsWith('image/'))
+    ) {
+      editError.textContent =
+        error || 'Enter a valid name and photo.';
 
-    const error = validShortcut(pendingShortcut, editingMember);
-
-    if (error) {
-      showEditError(error);
-      return;
-    }
-
-    const file = editImage.files[0];
-
-    if (file && !file.type.startsWith("image/")) {
-      showEditError("Please select an image file.");
+      editError.hidden = false;
       return;
     }
 
     const member = editingMember;
-    const previousURL = member.photoURL;
+    const oldURL = member.photoURL;
 
-    const newURL = file
-      ? URL.createObjectURL(file)
-      : editRemovePhoto.checked
+    member.photoURL = photo
+      ? URL.createObjectURL(photo)
+      : $('edit-remove-photo').checked
         ? null
-        : previousURL;
+        : oldURL;
 
-    member.name = newName;
+    member.name = name;
     member.color = editColor.value;
-    member.shortcut = pendingShortcut;
-    member.photoURL = newURL;
+    member.shortcut = editingKey;
 
     member.lines.forEach(line => {
-      line.memberShortcut = pendingShortcut;
+      line.memberShortcut = editingKey;
     });
 
-    closeSettings();
+    closeEdit();
+    renderMembers();
 
-    renderMemberCards();
-    renderClassicMembers();
-    renderVisualMembers();
-
-    updateAllResults();
-    updateWinnerCrown();
-
-    if (previousURL && previousURL !== newURL) {
-      URL.revokeObjectURL(previousURL);
+    if (oldURL && oldURL !== member.photoURL) {
+      URL.revokeObjectURL(oldURL);
     }
   });
 
-  deleteButton.addEventListener("click", function () {
-    if (!editingMember || isMemberEditingLocked()) return;
-
+  $('delete-member').addEventListener('click', () => {
     const member = editingMember;
 
-    const confirmed = window.confirm(
+    if (!member || isLocked()) return;
+
+    if (!confirm(
       `Remove ${member.name}? Their recorded lines will also be deleted.`
-    );
+    )) {
+      return;
+    }
 
-    if (!confirmed) return;
-
-    const index = members.indexOf(member);
-
-    if (index === -1) return;
-
-    members.splice(index, 1);
+    members.splice(members.indexOf(member), 1);
 
     member.lines.forEach(line => {
-      const lineIndex = recordedLines.indexOf(line);
+      const index = recordedLines.indexOf(line);
 
-      if (lineIndex !== -1) {
-        recordedLines.splice(lineIndex, 1);
+      if (index !== -1) {
+        recordedLines.splice(index, 1);
       }
     });
 
-    closeSettings();
-
-    renderMemberCards();
-    renderClassicMembers();
-    renderVisualMembers();
-
-    updateAllResults();
-    updateWinnerCrown();
+    closeEdit();
+    renderMembers();
 
     if (member.photoURL) {
       URL.revokeObjectURL(member.photoURL);
@@ -1423,319 +1344,360 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   // ==========================================
-  // CREATE NEW MEMBER
+  // MEMBER CARDS
   // ==========================================
 
-  memberForm.addEventListener("submit", function (event) {
-    event.preventDefault();
+  function renderCards() {
+    const fragment = document.createDocumentFragment();
 
-    if (isMemberEditingLocked()) return;
+    members.forEach(member => {
+      const card = document.createElement('div');
 
-    if (members.length >= 20) {
-      showError("You cannot add more members.");
-      return;
-    }
+      card.className = 'member-card';
+      card.style.setProperty(
+        '--member-color',
+        member.color
+      );
 
-    const name = nameInput.value.trim();
+      card.tabIndex = 0;
+      card.setAttribute('role', 'button');
+      card.setAttribute(
+        'aria-label',
+        'Edit member ' + member.name
+      );
 
-    if (!name) return;
+      if (member.photoURL) {
+        const image = document.createElement('img');
 
-    if (!selectedShortcut) {
-      showError("Choose a keyboard shortcut first.");
-      shortcutInput.focus();
-      return;
-    }
+        image.src = member.photoURL;
+        image.alt = member.name;
 
-    const error = validShortcut(selectedShortcut);
+        card.append(image);
+      }
 
-    if (error) {
-      showError(error);
-      return;
-    }
+      const title = document.createElement('p');
+      title.textContent = member.name;
 
-    const photo = imageInput.files[0];
+      const badge = document.createElement('span');
+      badge.className = 'member-shortcut';
+      badge.textContent = 'Key: ' + member.shortcut;
 
-    const member = {
-      name: name,
-      color: colorInput.value,
-      shortcut: selectedShortcut,
-      photoURL: photo ? URL.createObjectURL(photo) : null,
-      lines: [],
-      activeLine: null,
-      totalSeconds: 0,
-      percentage: 0,
-      classicUI: null
-    };
+      const hint = document.createElement('div');
+      hint.className = 'member-card-edit-hint';
+      hint.textContent = 'Click to edit ✎';
 
-    members.push(member);
+      card.append(title, badge, hint);
 
-    renderMemberCards();
-    renderClassicMembers();
-    renderVisualMembers();
+      card.addEventListener('click', () => {
+        openEdit(member);
+      });
 
-    updateAllResults();
-    updateWinnerCrown();
+      card.addEventListener('keydown', event => {
+        if (
+          event.key === 'Enter' ||
+          event.key === ' '
+        ) {
+          event.preventDefault();
+          openEdit(member);
+        }
+      });
 
-    memberForm.reset();
-    selectedShortcut = "";
+      fragment.append(card);
+    });
 
-    closeModal();
-  });
-
-  document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape") {
-      closeModal();
-      closeSettings();
-    }
-  });
-
-  // ==========================================
-  // MUSIC PLAYER
-  // ==========================================
-
-  function showMusicError(message) {
-    musicError.textContent = message;
-    musicError.hidden = false;
+    memberList.replaceChildren(fragment);
   }
 
-  function clearMusicError() {
-    musicError.textContent = "";
-    musicError.hidden = true;
+  function winnerCrown() {
+    const winner = recording === 'finished'
+      ? members.reduce((best, member) => {
+          if (
+            member.totalSeconds > 0 &&
+            (
+              !best ||
+              member.totalSeconds > best.totalSeconds
+            )
+          ) {
+            return member;
+          }
+
+          return best;
+        }, null)
+      : null;
+
+    classicLayout.classList.toggle(
+      'finished',
+      recording === 'finished'
+    );
+
+    members.forEach(member => {
+      member.classicUI?.row.classList.toggle(
+        'winner',
+        member === winner
+      );
+
+      member.visualUI?.node.classList.toggle(
+        'is-winner',
+        member === winner
+      );
+    });
   }
+
+  function renderMembers() {
+    renderCards();
+
+    const classics = document.createDocumentFragment();
+    const visuals = document.createDocumentFragment();
+
+    members.forEach(member => {
+      classics.append(classicRow(member));
+      visuals.append(visualCard(member));
+    });
+
+    classicMembers.replaceChildren(classics);
+    visualMembers.replaceChildren(visuals);
+
+    layoutVisual();
+    updateResults();
+    winnerCrown();
+    setButtons();
+  }
+
+  // ==========================================
+  // MUSIC PLAYER AND RECORDING
+  // ==========================================
 
   function formatTime(seconds) {
     if (!Number.isFinite(seconds) || seconds < 0) {
-      return "0:00";
+      return '0:00';
     }
 
-    const all = Math.floor(seconds);
-    const hours = Math.floor(all / 3600);
-    const minutes = Math.floor((all % 3600) / 60);
-    const remaining = String(all % 60).padStart(2, "0");
+    const number = Math.floor(seconds);
+    const minutes = Math.floor(number / 60);
+    const remaining = String(number % 60).padStart(2, '0');
 
-    return hours > 0
-      ? hours + ":" +
-        String(minutes).padStart(2, "0") + ":" +
-        remaining
-      : minutes + ":" + remaining;
+    return minutes >= 60
+      ? `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}:${remaining}`
+      : `${minutes}:${remaining}`;
   }
 
-  function updateMusicPlayButton() {
-    musicToggle.textContent = musicAudio.paused
-      ? "▶ Play"
-      : "⏸ Pause";
+  function progress() {
+    timeNow.textContent = formatTime(audio.currentTime);
+
+    const duration = audio.duration;
+
+    seek.value =
+      Number.isFinite(duration) && duration > 0
+        ? Math.max(
+            0,
+            Math.min(100, audio.currentTime / duration * 100)
+          )
+        : 0;
+
+    timeLength.textContent = formatTime(duration);
   }
 
-  function updateMusicProgress() {
-    const duration = musicAudio.duration;
-
-    musicCurrentTime.textContent =
-      formatTime(musicAudio.currentTime);
-
-    if (Number.isFinite(duration) && duration > 0) {
-      musicSeek.value = Math.max(
-        0,
-        Math.min(
-          100,
-          musicAudio.currentTime / duration * 100
-        )
-      );
-
-      musicDuration.textContent = formatTime(duration);
-    } else {
-      musicSeek.value = 0;
-      musicDuration.textContent = "0:00";
-    }
+  function playLabel() {
+    playButton.textContent = audio.paused
+      ? '▶ Play'
+      : '⏸ Pause';
   }
 
-  // ==========================================
-  // RECORDING PANEL
-  // ==========================================
+  const recordingPanel = document.createElement('section');
+  recordingPanel.id = 'recording-controls';
 
-  const panel = document.createElement("section");
-  panel.id = "recording-controls";
+  recordingPanel.style.cssText =
+    'max-width:960px;margin:24px auto;padding:20px;' +
+    'background:#1c1c28;border:1px solid #393543;' +
+    'border-radius:14px;text-align:center';
 
-  panel.style.cssText =
-    "max-width:960px;margin:24px auto;padding:20px;" +
-    "background:#1c1c28;border:1px solid #393543;" +
-    "border-radius:14px;text-align:center";
+  recordingPanel.innerHTML = `
+    <h2 style="color:var(--accent);margin-top:0">
+      RECORDING SYSTEM
+    </h2>
+  `;
 
-  const heading = document.createElement("h2");
-  heading.textContent = "RECORDING SYSTEM";
-  heading.style.cssText =
-    "color:var(--accent);margin-top:0";
-
-  const buttonRow = document.createElement("div");
+  const buttonRow = document.createElement('div');
 
   buttonRow.style.cssText =
-    "display:flex;justify-content:center;gap:12px;flex-wrap:wrap";
+    'display:flex;justify-content:center;' +
+    'gap:12px;flex-wrap:wrap';
 
-  const startButton = document.createElement("button");
-  startButton.id = "start-recording";
-  startButton.type = "button";
-  startButton.textContent = "● Start Recording";
+  const start = document.createElement('button');
+  start.id = 'start-recording';
+  start.textContent = '● Start Recording';
 
-  const finishButton = document.createElement("button");
-  finishButton.id = "finish-recording";
-  finishButton.type = "button";
-  finishButton.textContent = "■ Finish Recording";
+  const finish = document.createElement('button');
+  finish.id = 'finish-recording';
+  finish.textContent = '■ Finish Recording';
 
-  const status = document.createElement("p");
-  status.id = "recording-status";
-  status.style.color = "#c7c7d0";
+  const status = document.createElement('p');
+  status.id = 'recording-status';
+  status.style.color = '#c7c7d0';
 
-  buttonRow.append(startButton, finishButton);
-  panel.append(heading, buttonRow, status);
+  buttonRow.append(start, finish);
+  recordingPanel.append(buttonRow, status);
 
-  document.querySelector(".music-player")
-    .insertAdjacentElement("afterend", panel);
+  document.querySelector('.music-player').after(
+    recordingPanel
+  );
 
-  function updateButtons() {
-    startButton.disabled =
-      !musicIsReady ||
-      recordingState !== "idle";
-
-    finishButton.disabled =
-      recordingState !== "recording" &&
-      recordingState !== "awaitingFinish";
-
-    musicToggle.disabled =
-      !musicIsReady ||
-      recordingState === "awaitingFinish";
-
-    musicRestart.disabled = !musicIsReady;
-
-    musicSeek.disabled =
-      !musicIsReady ||
-      recordingState === "recording" ||
-      recordingState === "awaitingFinish";
-
-    openButton.disabled = isMemberEditingLocked();
-
-    if (visualDragHint) {
-      visualDragHint.hidden =
-        members.length === 0 ||
-        isMemberEditingLocked();
-    }
-  }
-
-  function updateStatus() {
-    if (recordingState === "idle") {
-      status.textContent = musicIsReady
-        ? "Ready! Press Start Recording."
-        : "Upload an MP3 to begin.";
+  function setStatus(value) {
+    if (value) {
+      status.textContent = value;
       return;
     }
 
-    if (recordingState === "awaitingFinish") {
-      status.textContent =
-        "Song ended. Click Finish Recording to confirm results.";
+    if (recording === 'idle') {
+      status.textContent = musicReady
+        ? 'Ready! Press Start Recording.'
+        : 'Upload an MP3 to begin.';
       return;
     }
 
-    if (recordingState === "finished") {
+    if (recording === 'awaitingFinish') {
       status.textContent =
-        "Recording finished! Final results are ready.";
+        'Song ended. Click Finish Recording to confirm results.';
       return;
     }
 
-    if (musicAudio.paused) {
+    if (recording === 'finished') {
       status.textContent =
-        "Recording paused. Press Play to continue.";
+        'Recording finished! Final results are ready.';
+      return;
+    }
+
+    if (audio.paused) {
+      status.textContent =
+        'Recording paused. Press Play to continue.';
       return;
     }
 
     const active = members.filter(member =>
-      member.activeLine !== null
+      member.activeLine
     );
 
-    status.textContent = active.length > 0
-      ? "Recording: " +
-        active.map(member => member.name).join(", ")
+    status.textContent = active.length
+      ? 'Recording: ' +
+        active.map(member => member.name).join(', ')
       : "Recording... Press a member's assigned key.";
   }
 
-  // ==========================================
-  // CALCULATE RESULTS
-  // ==========================================
+  function setButtons() {
+    start.disabled =
+      !musicReady ||
+      recording !== 'idle';
 
-  function updateAllResults() {
-    const now = musicAudio.currentTime || 0;
-    let combined = 0;
+    finish.disabled =
+      recording !== 'recording' &&
+      recording !== 'awaitingFinish';
 
-    members.forEach(function (member) {
+    playButton.disabled =
+      !musicReady ||
+      recording === 'awaitingFinish';
+
+    restartButton.disabled = !musicReady;
+
+    seek.disabled =
+      !musicReady ||
+      isLocked();
+
+    $('open-member-modal').disabled = isLocked();
+
+    if (groupButton) {
+      groupButton.disabled = isLocked();
+    }
+
+    if (visualHint) {
+      visualHint.hidden =
+        !members.length ||
+        isLocked();
+    }
+  }
+
+  function updateResults() {
+    let total = 0;
+    const now = audio.currentTime || 0;
+
+    members.forEach(member => {
       member.totalSeconds = member.lines.reduce(
-        function (total, line) {
+        (sum, line) => {
           const end = line.end === null
             ? now
             : line.end;
 
-          return total + Math.max(
-            0,
-            end - line.start
-          );
+          return sum + Math.max(0, end - line.start);
         },
         0
       );
 
-      combined += member.totalSeconds;
+      total += member.totalSeconds;
     });
 
-    members.forEach(function (member) {
-      member.percentage = combined > 0
-        ? member.totalSeconds / combined * 100
+    members.forEach(member => {
+      member.percentage = total
+        ? member.totalSeconds / total * 100
         : 0;
     });
 
-    updateClassicValues();
-    updateVisualValues();
+    updateClassic();
+    updateVisual();
   }
 
   function stopTimer() {
-    if (animationFrameId !== null) {
-      cancelAnimationFrame(animationFrameId);
+    if (frame !== null) {
+      cancelAnimationFrame(frame);
     }
 
-    animationFrameId = null;
+    frame = null;
   }
 
   function tick() {
-    animationFrameId = null;
-    updateAllResults();
+    frame = null;
+    updateResults();
 
     if (
-      recordingState === "recording" &&
-      !musicAudio.paused
+      recording === 'recording' &&
+      !audio.paused
     ) {
-      animationFrameId = requestAnimationFrame(tick);
+      frame = requestAnimationFrame(tick);
     }
   }
 
   function startTimer() {
     if (
-      animationFrameId === null &&
-      recordingState === "recording" &&
-      !musicAudio.paused
+      frame === null &&
+      recording === 'recording' &&
+      !audio.paused
     ) {
-      animationFrameId = requestAnimationFrame(tick);
+      frame = requestAnimationFrame(tick);
     }
   }
 
-  // ==========================================
-  // MEMBER RECORDING KEYS
-  // ==========================================
+  function closeLines(time) {
+    members.forEach(member => {
+      if (!member.activeLine) return;
 
-  function toggleMemberLine(member) {
+      member.activeLine.end = Math.max(
+        member.activeLine.start,
+        time
+      );
+
+      member.activeLine = null;
+    });
+  }
+
+  function toggleLine(member) {
     if (
-      recordingState !== "recording" ||
-      musicAudio.paused
+      recording !== 'recording' ||
+      audio.paused
     ) {
       return;
     }
 
-    const now = musicAudio.currentTime;
+    const now = audio.currentTime;
 
-    if (member.activeLine !== null) {
+    if (member.activeLine) {
       member.activeLine.end = now;
       member.activeLine = null;
     } else {
@@ -1750,307 +1712,281 @@ document.addEventListener("DOMContentLoaded", function () {
       member.activeLine = line;
     }
 
-    updateAllResults();
-    updateStatus();
+    updateResults();
+    setStatus();
   }
-
-  function closeAllActiveLines(endTime) {
-    members.forEach(function (member) {
-      if (member.activeLine !== null) {
-        member.activeLine.end = Math.max(
-          member.activeLine.start,
-          endTime
-        );
-
-        member.activeLine = null;
-      }
-    });
-  }
-
-  // ==========================================
-  // START / FINISH / RESET RECORDING
-  // ==========================================
-
-  async function startRecording() {
-    if (!musicIsReady || recordingState !== "idle") return;
-
-    if (members.length === 0) {
-      status.textContent =
-        "Add at least one member before recording.";
-      return;
-    }
-
-    clearMusicError();
-    recordingState = "recording";
-    updateButtons();
-    startButton.blur();
-
-    try {
-      await musicAudio.play();
-      updateStatus();
-      startTimer();
-    } catch (error) {
-      recordingState = "idle";
-      stopTimer();
-      updateButtons();
-      updateStatus();
-      showMusicError("Could not start this MP3 file.");
-    }
-  }
-
-  startButton.addEventListener("click", startRecording);
-
-  function finishRecording() {
-    if (
-      recordingState !== "recording" &&
-      recordingState !== "awaitingFinish"
-    ) {
-      return;
-    }
-
-    closeAllActiveLines(musicAudio.currentTime);
-    recordingState = "finished";
-
-    stopTimer();
-    musicAudio.pause();
-
-    updateAllResults();
-    updateWinnerCrown();
-    updateButtons();
-    updateStatus();
-    updateMusicPlayButton();
-  }
-
-  finishButton.addEventListener("click", finishRecording);
 
   function resetRecording() {
     stopTimer();
-    recordingState = "idle";
+
+    recording = 'idle';
     recordedLines.length = 0;
 
-    members.forEach(function (member) {
+    members.forEach(member => {
       member.lines = [];
       member.activeLine = null;
       member.totalSeconds = 0;
       member.percentage = 0;
     });
 
-    updateAllResults();
-    updateWinnerCrown();
-    updateButtons();
-    updateStatus();
+    updateResults();
+    winnerCrown();
+    setButtons();
+    setStatus();
   }
 
   function restartAll() {
-    if (!musicIsReady) return;
+    if (!musicReady) return;
 
-    musicAudio.pause();
-    musicAudio.currentTime = 0;
+    audio.pause();
+    audio.currentTime = 0;
 
     resetRecording();
-    updateMusicProgress();
-    updateMusicPlayButton();
+    progress();
+    playLabel();
   }
 
-  musicRestart.addEventListener("click", restartAll);
+  restartButton.addEventListener('click', restartAll);
+
+  start.addEventListener('click', async () => {
+    if (
+      !musicReady ||
+      recording !== 'idle'
+    ) {
+      return;
+    }
+
+    if (!members.length) {
+      setStatus('Add at least one member before recording.');
+      return;
+    }
+
+    musicError.hidden = true;
+    recording = 'recording';
+    setButtons();
+    start.blur();
+
+    try {
+      await audio.play();
+      setStatus();
+      startTimer();
+    } catch {
+      recording = 'idle';
+      stopTimer();
+      setButtons();
+      setStatus();
+
+      musicError.textContent =
+        'Could not start this MP3 file.';
+
+      musicError.hidden = false;
+    }
+  });
+
+  finish.addEventListener('click', () => {
+    if (!isLocked()) return;
+
+    closeLines(audio.currentTime);
+    recording = 'finished';
+
+    stopTimer();
+    audio.pause();
+
+    updateResults();
+    winnerCrown();
+    setButtons();
+    setStatus();
+    playLabel();
+  });
 
   // ==========================================
-  // LOAD MP3
+  // MP3 EVENTS
   // ==========================================
 
-  musicFile.addEventListener("change", function () {
-    clearMusicError();
-
-    const file = musicFile.files[0];
+  audioFile.addEventListener('change', () => {
+    const file = audioFile.files[0];
     if (!file) return;
 
     if (!/\.mp3$/i.test(file.name)) {
-      showMusicError("Please select an MP3 file only.");
-      musicFile.value = "";
+      musicError.textContent =
+        'Please select an MP3 file only.';
+
+      musicError.hidden = false;
+      audioFile.value = '';
       return;
     }
 
-    musicAudio.pause();
+    audio.pause();
     resetRecording();
 
-    musicIsReady = false;
-    updateButtons();
+    musicReady = false;
+    setButtons();
 
-    const previousURL = currentMusicURL;
-    currentMusicURL = URL.createObjectURL(file);
+    const oldURL = musicURL;
 
-    musicAudio.src = currentMusicURL;
-    musicAudio.load();
+    musicURL = URL.createObjectURL(file);
+    audio.src = musicURL;
+    audio.load();
 
-    if (previousURL) {
-      URL.revokeObjectURL(previousURL);
-    }
+    if (oldURL) URL.revokeObjectURL(oldURL);
 
-    musicTrackName.textContent =
-      file.name.replace(/\.mp3$/i, "");
+    trackName.textContent =
+      file.name.replace(/\.mp3$/i, '');
 
-    musicFile.value = "";
-    musicSeek.value = 0;
-    musicCurrentTime.textContent = "0:00";
-    musicDuration.textContent = "0:00";
+    audioFile.value = '';
+    seek.value = 0;
+    timeNow.textContent = '0:00';
+    timeLength.textContent = '0:00';
 
-    updateMusicPlayButton();
-    updateStatus();
+    playLabel();
+    setStatus();
+    musicError.hidden = true;
   });
 
-  musicAudio.addEventListener("loadedmetadata", function () {
-    musicIsReady =
-      Number.isFinite(musicAudio.duration) &&
-      musicAudio.duration > 0;
+  audio.addEventListener('loadedmetadata', () => {
+    musicReady =
+      Number.isFinite(audio.duration) &&
+      audio.duration > 0;
 
-    if (musicIsReady) {
-      clearMusicError();
+    if (!musicReady) {
+      musicError.textContent =
+        'Could not read this MP3 file duration.';
+
+      musicError.hidden = false;
     } else {
-      showMusicError(
-        "Could not read this MP3 file's duration."
-      );
+      musicError.hidden = true;
     }
 
-    updateMusicProgress();
-    updateButtons();
-    updateStatus();
+    progress();
+    setButtons();
+    setStatus();
   });
 
-  // ==========================================
-  // MUSIC PLAYBACK
-  // ==========================================
-
-  musicToggle.addEventListener("click", async function () {
+  playButton.addEventListener('click', async () => {
     if (
-      !musicIsReady ||
-      recordingState === "awaitingFinish"
+      !musicReady ||
+      recording === 'awaitingFinish'
     ) {
       return;
     }
 
-    clearMusicError();
-
-    if (musicAudio.paused) {
+    if (audio.paused) {
       try {
-        await musicAudio.play();
-      } catch (error) {
-        showMusicError("Could not play this audio file.");
+        await audio.play();
+      } catch {
+        musicError.textContent =
+          'Could not play this audio file.';
+
+        musicError.hidden = false;
       }
     } else {
-      musicAudio.pause();
+      audio.pause();
     }
 
-    updateMusicPlayButton();
+    playLabel();
   });
 
-  musicSeek.addEventListener("input", function () {
-    if (!musicIsReady || musicSeek.disabled) return;
+  seek.addEventListener('input', () => {
+    if (seek.disabled || !musicReady) return;
 
     if (
-      Number.isFinite(musicAudio.duration) &&
-      musicAudio.duration > 0
+      Number.isFinite(audio.duration) &&
+      audio.duration > 0
     ) {
-      musicAudio.currentTime =
-        Number(musicSeek.value) /
-        100 *
-        musicAudio.duration;
+      audio.currentTime =
+        Number(seek.value) / 100 * audio.duration;
 
-      updateMusicProgress();
+      progress();
     }
   });
 
-  musicVolume.addEventListener("input", function () {
-    musicAudio.volume = Number(musicVolume.value);
+  volume.addEventListener('input', () => {
+    audio.volume = Number(volume.value);
   });
 
-  musicAudio.volume = Number(musicVolume.value);
+  audio.volume = Number(volume.value);
 
-  musicAudio.addEventListener("timeupdate", function () {
-    updateMusicProgress();
+  audio.addEventListener('timeupdate', () => {
+    progress();
 
-    if (recordingState === "recording") {
-      updateAllResults();
+    if (recording === 'recording') {
+      updateResults();
     }
   });
 
-  musicAudio.addEventListener(
-    "durationchange",
-    updateMusicProgress
-  );
+  audio.addEventListener('durationchange', progress);
 
-  musicAudio.addEventListener("play", function () {
-    updateMusicPlayButton();
-    updateStatus();
+  audio.addEventListener('play', () => {
+    playLabel();
+    setStatus();
     startTimer();
   });
 
-  musicAudio.addEventListener("pause", function () {
+  audio.addEventListener('pause', () => {
     stopTimer();
-    updateAllResults();
-    updateMusicPlayButton();
-    updateStatus();
+    updateResults();
+    playLabel();
+    setStatus();
   });
 
-  musicAudio.addEventListener("ended", function () {
-    if (recordingState === "recording") {
-      closeAllActiveLines(musicAudio.duration);
-      recordingState = "awaitingFinish";
+  audio.addEventListener('ended', () => {
+    if (recording === 'recording') {
+      closeLines(audio.duration);
+      recording = 'awaitingFinish';
 
       stopTimer();
-      updateAllResults();
-      updateButtons();
-      updateStatus();
+      updateResults();
+      setButtons();
+      setStatus();
     }
 
-    updateMusicProgress();
-    updateMusicPlayButton();
+    progress();
+    playLabel();
   });
 
-  musicAudio.addEventListener("error", function () {
-    musicIsReady = false;
+  audio.addEventListener('error', () => {
+    musicReady = false;
 
-    if (recordingState === "recording") {
-      closeAllActiveLines(musicAudio.currentTime);
-      recordingState = "awaitingFinish";
+    if (recording === 'recording') {
+      closeLines(audio.currentTime);
+      recording = 'awaitingFinish';
 
       stopTimer();
-      updateAllResults();
+      updateResults();
     }
 
-    updateButtons();
-    updateMusicPlayButton();
+    setButtons();
+    playLabel();
 
-    showMusicError(
-      "This MP3 file could not be loaded. Please try another file."
-    );
+    musicError.textContent =
+      'This MP3 file could not be loaded. Please try another file.';
+
+    musicError.hidden = false;
   });
 
   // ==========================================
-  // APPEARANCE SETTINGS — STORAGE
+  // APPEARANCE SETTINGS
   // ==========================================
 
-  const APPEARANCE_KEY = "lds-appearance-v1";
-  const APPEARANCE_DB = "lds-appearance-assets";
+  const APPEARANCE_KEY = 'lds-appearance-v1';
+  const APPEARANCE_DB = 'lds-appearance-assets';
 
   const DEFAULT_APPEARANCE = {
-    accent: "#ff80c8",
-    background: "#101018",
+    accent: '#ff80c8',
+    background: '#101018',
     dim: 25
   };
 
-  function validHex(value) {
-    return /^#[0-9a-f]{6}$/i.test(value);
-  }
+  const validHex = value =>
+    /^#[0-9a-f]{6}$/i.test(value);
 
   function loadAppearanceColors() {
     try {
       const saved = JSON.parse(
-        localStorage.getItem(APPEARANCE_KEY) || "null"
+        localStorage.getItem(APPEARANCE_KEY) || 'null'
       );
 
-      if (!saved || typeof saved !== "object") {
-        return { ...DEFAULT_APPEARANCE };
-      }
+      if (!saved) return { ...DEFAULT_APPEARANCE };
 
       return {
         accent: validHex(saved.accent)
@@ -2063,88 +1999,82 @@ document.addEventListener("DOMContentLoaded", function () {
 
         dim: Number.isFinite(Number(saved.dim))
           ? Math.max(0, Math.min(85, Number(saved.dim)))
-          : DEFAULT_APPEARANCE.dim
+          : 25
       };
-    } catch (error) {
+    } catch {
       return { ...DEFAULT_APPEARANCE };
     }
   }
 
   function backgroundDatabase(action, file) {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
       if (!window.indexedDB) {
-        reject(new Error("Image storage is unavailable."));
+        reject(new Error('Image storage unavailable.'));
         return;
       }
 
-      const open = indexedDB.open(APPEARANCE_DB, 1);
+      const request = indexedDB.open(APPEARANCE_DB, 1);
 
-      open.onupgradeneeded = function () {
-        const db = open.result;
-
-        if (!db.objectStoreNames.contains("files")) {
-          db.createObjectStore("files");
+      request.onupgradeneeded = () => {
+        if (
+          !request.result.objectStoreNames.contains('files')
+        ) {
+          request.result.createObjectStore('files');
         }
       };
 
-      open.onerror = function () {
-        reject(
-          open.error ||
-          new Error("Could not open image storage.")
-        );
-      };
+      request.onerror = () => reject(
+        request.error ||
+        new Error('Image storage unavailable.')
+      );
 
-      open.onsuccess = function () {
-        const db = open.result;
-        let result = null;
+      request.onsuccess = () => {
+        const db = request.result;
 
         const transaction = db.transaction(
-          "files",
-          action === "read" ? "readonly" : "readwrite"
+          'files',
+          action === 'read' ? 'readonly' : 'readwrite'
         );
 
-        const store = transaction.objectStore("files");
-        let request;
+        const store = transaction.objectStore('files');
 
-        if (action === "read") {
-          request = store.get("background");
+        let result = null;
+        let operation;
+
+        if (action === 'read') {
+          operation = store.get('background');
         }
 
-        if (action === "write") {
-          request = store.put(file, "background");
+        if (action === 'write') {
+          operation = store.put(file, 'background');
         }
 
-        if (action === "delete") {
-          request = store.delete("background");
+        if (action === 'delete') {
+          operation = store.delete('background');
         }
 
-        if (request && action === "read") {
-          request.onsuccess = function () {
-            result = request.result || null;
+        if (action === 'read') {
+          operation.onsuccess = () => {
+            result = operation.result || null;
           };
         }
 
-        transaction.oncomplete = function () {
+        transaction.oncomplete = () => {
           db.close();
           resolve(result);
         };
 
-        transaction.onerror = function () {
+        transaction.onerror = () => {
           db.close();
-
           reject(
             transaction.error ||
-            new Error("Could not save image.")
+            new Error('Could not save image.')
           );
         };
 
-        transaction.onabort = function () {
+        transaction.onabort = () => {
           db.close();
-
-          reject(
-            transaction.error ||
-            new Error("Image storage was interrupted.")
-          );
+          reject(new Error('Saving interrupted.'));
         };
       };
     });
@@ -2156,71 +2086,61 @@ document.addEventListener("DOMContentLoaded", function () {
   let savedBackgroundURL = null;
   let draftBackgroundURL = null;
   let pendingImageFile = null;
+
   let removeBackgroundImage = false;
   let imageRevision = 0;
   let appearanceSaving = false;
 
-  function applyAppearance(values, imageURL) {
-    const root = document.documentElement;
+  function applyAppearance(values, url) {
+    const root = document.documentElement.style;
 
-    root.style.setProperty(
-      "--accent",
-      values.accent
-    );
+    root.setProperty('--accent', values.accent);
+    root.setProperty('--background', values.background);
 
-    root.style.setProperty(
-      "--background",
-      values.background
-    );
-
-    root.style.setProperty(
-      "--background-image-dim",
+    root.setProperty(
+      '--background-image-dim',
       String(values.dim / 100)
     );
 
-    root.style.setProperty(
-      "--page-background-image",
-      imageURL ? `url("${imageURL}")` : "none"
+    root.setProperty(
+      '--page-background-image',
+      url ? `url("${url}")` : 'none'
     );
 
     document.body.classList.toggle(
-      "appearance-has-image",
-      !!imageURL
+      'appearance-has-image',
+      !!url
     );
   }
 
-  applyAppearance(savedAppearance, savedBackgroundURL);
+  applyAppearance(savedAppearance, null);
 
-  // ==========================================
-  // APPEARANCE BUTTON
-  // ==========================================
+  const appearanceToggle = document.createElement('button');
 
-  const appearanceToggle = document.createElement("button");
-
-  appearanceToggle.type = "button";
-  appearanceToggle.id = "appearance-toggle";
-  appearanceToggle.textContent = "🎨 Appearance Settings";
+  appearanceToggle.id = 'appearance-toggle';
+  appearanceToggle.type = 'button';
+  appearanceToggle.textContent = '🎨 Appearance Settings';
 
   appearanceToggle.setAttribute(
-    "aria-haspopup",
-    "dialog"
+    'aria-haspopup',
+    'dialog'
   );
 
   appearanceToggle.setAttribute(
-    "aria-controls",
-    "appearance-overlay"
+    'aria-controls',
+    'appearance-overlay'
   );
 
-  document.body.appendChild(appearanceToggle);
+  document.body.append(appearanceToggle);
 
-  // ==========================================
-  // APPEARANCE SETTINGS WINDOW
-  // ==========================================
+  const appearanceOverlay = document.createElement('div');
 
-  const appearanceOverlay = document.createElement("div");
+  appearanceOverlay.id = 'appearance-overlay';
 
-  appearanceOverlay.id = "appearance-overlay";
-  appearanceOverlay.setAttribute("aria-hidden", "true");
+  appearanceOverlay.setAttribute(
+    'aria-hidden',
+    'true'
+  );
 
   appearanceOverlay.innerHTML = `
     <div class="appearance-panel"
@@ -2230,8 +2150,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
       <div class="appearance-panel-header">
 
-        <h2 class="appearance-panel-title"
-            id="appearance-title">
+        <h2 id="appearance-title"
+            class="appearance-panel-title">
           🎨 Appearance Settings
         </h2>
 
@@ -2244,8 +2164,8 @@ document.addEventListener("DOMContentLoaded", function () {
       </div>
 
       <p class="appearance-description">
-        Personalize the website. Classic and Visual video
-        previews keep their dark backgrounds.
+        Personalize the website. Classic and Visual
+        previews keep dark backgrounds.
       </p>
 
       <form id="appearance-form">
@@ -2258,7 +2178,6 @@ document.addEventListener("DOMContentLoaded", function () {
           </label>
 
           <p class="appearance-hint">
-            Choose any color with your browser's full color palette.
             Buttons, headings and highlights will change.
           </p>
 
@@ -2274,10 +2193,11 @@ document.addEventListener("DOMContentLoaded", function () {
                    type="text"
                    maxlength="7"
                    spellcheck="false"
-                   aria-label="Accent color hex code"
+                   aria-label="Accent color hex"
                    value="#FF80C8">
 
           </div>
+
         </div>
 
         <div class="appearance-setting">
@@ -2303,10 +2223,11 @@ document.addEventListener("DOMContentLoaded", function () {
                    type="text"
                    maxlength="7"
                    spellcheck="false"
-                   aria-label="Page background hex code"
+                   aria-label="Page background hex"
                    value="#101018">
 
           </div>
+
         </div>
 
         <div class="appearance-setting">
@@ -2318,7 +2239,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
           <p class="appearance-hint">
             JPG, PNG, WebP, GIF or AVIF, up to 20 MB.
-            Your image stays in your browser.
           </p>
 
           <input class="appearance-upload"
@@ -2326,8 +2246,8 @@ document.addEventListener("DOMContentLoaded", function () {
                  type="file"
                  accept="image/jpeg,image/png,image/webp,image/gif,image/avif">
 
-          <div id="appearance-image-preview"
-               class="appearance-image-preview">
+          <div class="appearance-image-preview"
+               id="appearance-image-preview">
             No background image selected
           </div>
 
@@ -2347,7 +2267,7 @@ document.addEventListener("DOMContentLoaded", function () {
           </label>
 
           <p class="appearance-hint">
-            Darken your background for better readability.
+            Darken your background for readability.
           </p>
 
           <div class="appearance-dim-row">
@@ -2367,6 +2287,7 @@ document.addEventListener("DOMContentLoaded", function () {
             </output>
 
           </div>
+
         </div>
 
         <div class="appearance-actions">
@@ -2391,9 +2312,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
         </div>
 
-        <p id="appearance-notice"
-           class="appearance-preview-notice"
-           role="status">
+        <p class="appearance-preview-notice"
+           role="status"
+           id="appearance-notice">
           Changes are previewed live.
           Click Save Changes to keep them.
         </p>
@@ -2402,38 +2323,38 @@ document.addEventListener("DOMContentLoaded", function () {
     </div>
   `;
 
-  document.body.appendChild(appearanceOverlay);
+  document.body.append(appearanceOverlay);
 
-  // ==========================================
-  // APPEARANCE INPUTS
-  // ==========================================
+  const appearanceForm = $('appearance-form');
+  const accentPicker = $('appearance-accent');
+  const accentHex = $('appearance-accent-hex');
 
-  const appearanceForm = $("appearance-form");
-  const accentPicker = $("appearance-accent");
-  const accentHex = $("appearance-accent-hex");
-  const backgroundPicker = $("appearance-background");
-  const backgroundHex = $("appearance-background-hex");
-  const imagePicker = $("appearance-image");
-  const imagePreview = $("appearance-image-preview");
-  const dimSlider = $("appearance-dim");
-  const dimValue = $("appearance-dim-value");
-  const appearanceNotice = $("appearance-notice");
-  const appearanceSave = $("appearance-save");
+  const backgroundPicker = $('appearance-background');
+  const backgroundHex = $('appearance-background-hex');
 
-  function currentDraftImage() {
-    if (removeBackgroundImage) return null;
-    return draftBackgroundURL || savedBackgroundURL;
-  }
+  const imagePicker = $('appearance-image');
+  const imagePreview = $('appearance-image-preview');
+
+  const dimSlider = $('appearance-dim');
+  const dimValue = $('appearance-dim-value');
+
+  const appearanceNotice = $('appearance-notice');
+  const appearanceSave = $('appearance-save');
+
+  const currentDraftImage = () =>
+    removeBackgroundImage
+      ? null
+      : draftBackgroundURL || savedBackgroundURL;
 
   function refreshAppearanceImagePreview() {
     const url = currentDraftImage();
 
     imagePreview.style.backgroundImage =
-      url ? `url("${url}")` : "none";
+      url ? `url("${url}")` : 'none';
 
     imagePreview.textContent = url
-      ? ""
-      : "No background image selected";
+      ? ''
+      : 'No background image selected';
   }
 
   function previewAppearance() {
@@ -2442,9 +2363,7 @@ document.addEventListener("DOMContentLoaded", function () {
       currentDraftImage()
     );
 
-    dimValue.textContent =
-      draftAppearance.dim + "%";
-
+    dimValue.textContent = draftAppearance.dim + '%';
     refreshAppearanceImagePreview();
   }
 
@@ -2455,27 +2374,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
     draftBackgroundURL = null;
     pendingImageFile = null;
-    imagePicker.value = "";
+    imagePicker.value = '';
   }
-
-  // ==========================================
-  // OPEN / CLOSE APPEARANCE
-  // ==========================================
 
   function openAppearance() {
     if (appearanceSaving) return;
 
     draftAppearance = { ...savedAppearance };
-
     clearDraftImage();
+
     removeBackgroundImage = false;
 
     accentPicker.value = draftAppearance.accent;
-    accentHex.value =
-      draftAppearance.accent.toUpperCase();
+    accentHex.value = draftAppearance.accent.toUpperCase();
 
-    backgroundPicker.value =
-      draftAppearance.background;
+    backgroundPicker.value = draftAppearance.background;
 
     backgroundHex.value =
       draftAppearance.background.toUpperCase();
@@ -2483,20 +2396,19 @@ document.addEventListener("DOMContentLoaded", function () {
     dimSlider.value = draftAppearance.dim;
 
     appearanceNotice.textContent =
-      "Changes are previewed live. Click Save Changes to keep them.";
+      'Changes are previewed live. Click Save Changes to keep them.';
 
     previewAppearance();
-
-    appearanceOverlay.classList.add("open");
+    show(appearanceOverlay);
 
     appearanceOverlay.setAttribute(
-      "aria-hidden",
-      "false"
+      'aria-hidden',
+      'false'
     );
 
     appearanceToggle.setAttribute(
-      "aria-expanded",
-      "true"
+      'aria-expanded',
+      'true'
     );
 
     accentPicker.focus();
@@ -2505,16 +2417,16 @@ document.addEventListener("DOMContentLoaded", function () {
   function closeAppearance(commit = false) {
     if (appearanceSaving) return;
 
-    appearanceOverlay.classList.remove("open");
+    hide(appearanceOverlay);
 
     appearanceOverlay.setAttribute(
-      "aria-hidden",
-      "true"
+      'aria-hidden',
+      'true'
     );
 
     appearanceToggle.setAttribute(
-      "aria-expanded",
-      "false"
+      'aria-expanded',
+      'false'
     );
 
     if (!commit) {
@@ -2530,18 +2442,14 @@ document.addEventListener("DOMContentLoaded", function () {
     appearanceToggle.focus();
   }
 
-  // ==========================================
-  // COLOR PICKERS
-  // ==========================================
-
-  function connectColorPicker(picker, hex, property) {
-    picker.addEventListener("input", function () {
+  function connectColor(picker, hex, property) {
+    picker.addEventListener('input', () => {
       draftAppearance[property] = picker.value;
       hex.value = picker.value.toUpperCase();
       previewAppearance();
     });
 
-    hex.addEventListener("input", function () {
+    hex.addEventListener('input', () => {
       const color = hex.value.trim();
 
       if (!validHex(color)) return;
@@ -2552,53 +2460,49 @@ document.addEventListener("DOMContentLoaded", function () {
       previewAppearance();
     });
 
-    hex.addEventListener("blur", function () {
+    hex.addEventListener('blur', () => {
       hex.value =
         draftAppearance[property].toUpperCase();
     });
   }
 
-  connectColorPicker(
+  connectColor(
     accentPicker,
     accentHex,
-    "accent"
+    'accent'
   );
 
-  connectColorPicker(
+  connectColor(
     backgroundPicker,
     backgroundHex,
-    "background"
+    'background'
   );
 
-  dimSlider.addEventListener("input", function () {
+  dimSlider.addEventListener('input', () => {
     draftAppearance.dim = Number(dimSlider.value);
     previewAppearance();
   });
 
-  // ==========================================
-  // BACKGROUND IMAGE
-  // ==========================================
-
-  imagePicker.addEventListener("change", function () {
+  imagePicker.addEventListener('change', () => {
     const file = imagePicker.files[0];
     if (!file) return;
 
-    const accepted = [
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-      "image/gif",
-      "image/avif"
+    const allowed = [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+      'image/avif'
     ];
 
     if (
-      !accepted.includes(file.type) ||
+      !allowed.includes(file.type) ||
       file.size > 20 * 1024 * 1024
     ) {
-      imagePicker.value = "";
+      imagePicker.value = '';
 
       appearanceNotice.textContent =
-        "Choose JPG, PNG, WebP, GIF or AVIF, up to 20 MB.";
+        'Choose JPG, PNG, WebP, GIF or AVIF, up to 20 MB.';
 
       return;
     }
@@ -2614,12 +2518,12 @@ document.addEventListener("DOMContentLoaded", function () {
     previewAppearance();
 
     appearanceNotice.textContent =
-      "New image previewed. Click Save Changes to keep it.";
+      'New image previewed. Click Save Changes to keep it.';
   });
 
-  $("appearance-remove-image").addEventListener(
-    "click",
-    function () {
+  $('appearance-remove-image').addEventListener(
+    'click',
+    () => {
       clearDraftImage();
 
       removeBackgroundImage = true;
@@ -2628,15 +2532,11 @@ document.addEventListener("DOMContentLoaded", function () {
       previewAppearance();
 
       appearanceNotice.textContent =
-        "Image will be removed when you save changes.";
+        'Image will be removed when you save changes.';
     }
   );
 
-  // ==========================================
-  // RESET APPEARANCE
-  // ==========================================
-
-  $("appearance-reset").addEventListener("click", function () {
+  $('appearance-reset').addEventListener('click', () => {
     clearDraftImage();
 
     draftAppearance = { ...DEFAULT_APPEARANCE };
@@ -2644,11 +2544,11 @@ document.addEventListener("DOMContentLoaded", function () {
     imageRevision++;
 
     accentPicker.value = draftAppearance.accent;
+
     accentHex.value =
       draftAppearance.accent.toUpperCase();
 
-    backgroundPicker.value =
-      draftAppearance.background;
+    backgroundPicker.value = draftAppearance.background;
 
     backgroundHex.value =
       draftAppearance.background.toUpperCase();
@@ -2658,150 +2558,124 @@ document.addEventListener("DOMContentLoaded", function () {
     previewAppearance();
 
     appearanceNotice.textContent =
-      "Defaults selected. Click Save Changes to confirm.";
+      'Defaults selected. Click Save Changes to confirm.';
   });
 
-  // ==========================================
-  // SAVE APPEARANCE
-  // ==========================================
+  appearanceForm.addEventListener('submit', async event => {
+    event.preventDefault();
 
-  appearanceForm.addEventListener(
-    "submit",
-    async function (event) {
-      event.preventDefault();
+    if (appearanceSaving) return;
 
-      if (appearanceSaving) return;
+    const newImage = pendingImageFile;
 
-      const newImage = pendingImageFile;
-      const deleteImage =
-        removeBackgroundImage && !newImage;
+    const deleteImage =
+      removeBackgroundImage && !newImage;
 
-      appearanceSaving = true;
-      appearanceSave.disabled = true;
+    appearanceSaving = true;
+    appearanceSave.disabled = true;
 
-      appearanceNotice.textContent =
-        "Saving appearance settings...";
+    appearanceNotice.textContent = 'Saving settings...';
+
+    try {
+      if (newImage) {
+        await backgroundDatabase('write', newImage);
+      } else if (deleteImage) {
+        try {
+          await backgroundDatabase('delete');
+        } catch (error) {
+          if (savedBackgroundURL) throw error;
+        }
+      }
+
+      const nextURL = newImage
+        ? draftBackgroundURL
+        : deleteImage
+          ? null
+          : savedBackgroundURL;
+
+      if (
+        savedBackgroundURL &&
+        savedBackgroundURL !== nextURL
+      ) {
+        URL.revokeObjectURL(savedBackgroundURL);
+      }
+
+      savedBackgroundURL = nextURL;
+
+      if (newImage) {
+        draftBackgroundURL = null;
+      }
+
+      savedAppearance = { ...draftAppearance };
+
+      let stored = true;
 
       try {
-        if (newImage) {
-          await backgroundDatabase("write", newImage);
-        } else if (deleteImage) {
-          try {
-            await backgroundDatabase("delete");
-          } catch (error) {
-            if (savedBackgroundURL) {
-              throw error;
-            }
-          }
-        }
-
-        const nextURL = newImage
-          ? draftBackgroundURL
-          : deleteImage
-            ? null
-            : savedBackgroundURL;
-
-        if (
-          savedBackgroundURL &&
-          savedBackgroundURL !== nextURL
-        ) {
-          URL.revokeObjectURL(savedBackgroundURL);
-        }
-
-        savedBackgroundURL = nextURL;
-
-        if (newImage) {
-          draftBackgroundURL = null;
-        }
-
-        savedAppearance = { ...draftAppearance };
-
-        let colorsStored = true;
-
-        try {
-          localStorage.setItem(
-            APPEARANCE_KEY,
-            JSON.stringify(savedAppearance)
-          );
-        } catch (error) {
-          colorsStored = false;
-        }
-
-        applyAppearance(
-          savedAppearance,
-          savedBackgroundURL
+        localStorage.setItem(
+          APPEARANCE_KEY,
+          JSON.stringify(savedAppearance)
         );
-
-        appearanceSaving = false;
-        appearanceSave.disabled = false;
-
-        closeAppearance(true);
-
-        if (!colorsStored) {
-          window.alert(
-            "Appearance applied, but the browser blocked saving colors for the next visit."
-          );
-        }
-
-      } catch (error) {
-        appearanceSaving = false;
-        appearanceSave.disabled = false;
-
-        appearanceNotice.textContent =
-          "Could not save the background image in this browser. " +
-          "Try another image or remove it.";
+      } catch {
+        stored = false;
       }
-    }
-  );
 
-  // ==========================================
-  // APPEARANCE BUTTON EVENTS
-  // ==========================================
+      applyAppearance(
+        savedAppearance,
+        savedBackgroundURL
+      );
+
+      appearanceSaving = false;
+      appearanceSave.disabled = false;
+
+      closeAppearance(true);
+
+      if (!stored) {
+        alert(
+          'Appearance applied, but the browser blocked saving colors for the next visit.'
+        );
+      }
+    } catch {
+      appearanceSaving = false;
+      appearanceSave.disabled = false;
+
+      appearanceNotice.textContent =
+        'Could not save the background image. Try another image or remove it.';
+    }
+  });
 
   appearanceToggle.addEventListener(
-    "click",
+    'click',
     openAppearance
   );
 
-  $("appearance-close").addEventListener(
-    "click",
-    function () {
+  $('appearance-close').addEventListener(
+    'click',
+    () => closeAppearance()
+  );
+
+  $('appearance-cancel').addEventListener(
+    'click',
+    () => closeAppearance()
+  );
+
+  appearanceOverlay.addEventListener('click', event => {
+    if (event.target === appearanceOverlay) {
       closeAppearance();
     }
-  );
+  });
 
-  $("appearance-cancel").addEventListener(
-    "click",
-    function () {
-      closeAppearance();
-    }
-  );
-
-  appearanceOverlay.addEventListener(
-    "click",
-    function (event) {
-      if (event.target === appearanceOverlay) {
-        closeAppearance();
-      }
-    }
-  );
-
-  document.addEventListener("keydown", function (event) {
+  document.addEventListener('keydown', event => {
     if (
-      event.key === "Escape" &&
-      appearanceOverlay.classList.contains("open")
+      event.key === 'Escape' &&
+      appearanceOverlay.classList.contains('open')
     ) {
       closeAppearance();
     }
   });
 
-  // ==========================================
-  // RESTORE BACKGROUND IMAGE
-  // ==========================================
-
   const initialImageRevision = imageRevision;
 
-  backgroundDatabase("read").then(function (file) {
+  backgroundDatabase('read').then(file => {
     if (
       !file ||
       imageRevision !== initialImageRevision
@@ -2811,7 +2685,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     savedBackgroundURL = URL.createObjectURL(file);
 
-    if (!appearanceOverlay.classList.contains("open")) {
+    if (!appearanceOverlay.classList.contains('open')) {
       applyAppearance(
         savedAppearance,
         savedBackgroundURL
@@ -2819,29 +2693,1086 @@ document.addEventListener("DOMContentLoaded", function () {
     } else {
       refreshAppearanceImagePreview();
     }
-  }).catch(function () {
-    // Colors still work if browser image storage is blocked.
+  }).catch(() => {});
+
+  // ==========================================
+  // GROUP PRESETS — LOCAL DATABASE
+  // ==========================================
+
+  const groupsList = $('groups-list');
+  const groupsEmpty = $('groups-empty');
+  const groupsStatus = $('groups-status');
+
+  const groupEditorStatus = $('group-editor-status');
+  const groupLoadStatus = $('group-load-status');
+
+  const groupEditorName = $('group-editor-name');
+  const groupEditorMembers = $('group-editor-members');
+  const groupEditorEmpty = $('group-editor-empty');
+
+  const groupMemberForm = $('group-member-form');
+  const groupMemberName = $('group-member-name');
+  const groupMemberColor = $('group-member-color');
+  const groupMemberImage = $('group-member-image');
+
+  const groupMemberShortcut = $('group-member-shortcut');
+
+  const groupMemberRemovePhoto =
+    $('group-member-remove-photo');
+
+  const groupMemberSubmit = $('group-member-submit');
+  const groupCardTemplate = $('group-card-template');
+
+  const GROUP_DB_NAME = 'lds-group-presets-v1';
+  const GROUP_KEYS = KEYS;
+  const MAX_GROUP_MEMBERS = 20;
+  const MAX_GROUP_PHOTO_SIZE = 12 * 1024 * 1024;
+
+  let savedGroups = [];
+  let editingGroupId = null;
+  let draftGroupMembers = [];
+
+  let editingGroupMemberIndex = -1;
+  let pendingGroupShortcut = '';
+
+  let selectedLoadGroup = null;
+  let groupBusy = false;
+
+  let groupListImageURLs = [];
+  let groupEditorImageURLs = [];
+
+  function groupMessage(element, message) {
+    if (element) {
+      element.textContent = message || '';
+    }
+  }
+
+  function releaseGroupImages(urls) {
+    urls.forEach(url => {
+      URL.revokeObjectURL(url);
+    });
+
+    urls.length = 0;
+  }
+
+  function groupPhotoURL(photo, list) {
+    if (!(photo instanceof Blob)) return '';
+
+    const url = URL.createObjectURL(photo);
+    list.push(url);
+
+    return url;
+  }
+
+  function groupDatabase(action, data) {
+    return new Promise((resolve, reject) => {
+      if (!window.indexedDB) {
+        reject(
+          new Error('Browser storage is unavailable.')
+        );
+        return;
+      }
+
+      const request = indexedDB.open(GROUP_DB_NAME, 1);
+
+      request.onupgradeneeded = () => {
+        if (
+          !request.result.objectStoreNames.contains('groups')
+        ) {
+          request.result.createObjectStore(
+            'groups',
+            { keyPath: 'id' }
+          );
+        }
+      };
+
+      request.onerror = () => {
+        reject(
+          request.error ||
+          new Error('Could not open group storage.')
+        );
+      };
+
+      request.onsuccess = () => {
+        const db = request.result;
+
+        const transaction = db.transaction(
+          'groups',
+          action === 'list' ? 'readonly' : 'readwrite'
+        );
+
+        const store = transaction.objectStore('groups');
+
+        let result;
+        let operation;
+
+        if (action === 'list') {
+          operation = store.getAll();
+        }
+
+        if (action === 'save') {
+          operation = store.put(data);
+        }
+
+        if (action === 'delete') {
+          operation = store.delete(data);
+        }
+
+        operation.onsuccess = () => {
+          result = operation.result;
+        };
+
+        transaction.oncomplete = () => {
+          db.close();
+          resolve(result);
+        };
+
+        transaction.onerror = () => {
+          db.close();
+
+          reject(
+            transaction.error ||
+            new Error('Storage failed.')
+          );
+        };
+
+        transaction.onabort = () => {
+          db.close();
+          reject(new Error('Storage canceled.'));
+        };
+      };
+    });
+  }
+
+  function groupId() {
+    if (
+      window.crypto &&
+      typeof window.crypto.randomUUID === 'function'
+    ) {
+      return window.crypto.randomUUID();
+    }
+
+    return (
+      'group-' +
+      Date.now() +
+      '-' +
+      Math.random().toString(36).slice(2)
+    );
+  }
+
+  async function photoBlobFromMember(member) {
+    if (!member.photoURL) return null;
+
+    const response = await fetch(member.photoURL);
+
+    if (!response.ok) {
+      throw new Error(
+        'Could not read photo of ' + member.name + '.'
+      );
+    }
+
+    return await response.blob();
+  }
+
+  function sortedGroups() {
+    return [...savedGroups].sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+  }
+
+  // ==========================================
+  // GROUP PHOTO THUMBNAILS
+  // ==========================================
+
+  function makeGroupPicture(person, container, urls) {
+    const cssColor = validHex(person.color)
+      ? person.color
+      : '#ff80c8';
+
+    let avatar;
+
+    if (person.photo instanceof Blob) {
+      avatar = document.createElement('img');
+
+      avatar.src = groupPhotoURL(person.photo, urls);
+      avatar.alt = '';
+    } else {
+      avatar = document.createElement('span');
+      avatar.textContent =
+        (person.name || '?').charAt(0).toUpperCase();
+    }
+
+    avatar.style.setProperty(
+      '--member-color',
+      cssColor
+    );
+
+    container.appendChild(avatar);
+  }
+
+  // ==========================================
+  // SAVED GROUP LIST
+  // ==========================================
+
+  function renderGroupList() {
+    releaseGroupImages(groupListImageURLs);
+
+    groupsList.replaceChildren();
+    groupsEmpty.hidden = savedGroups.length > 0;
+
+    sortedGroups().forEach(group => {
+      const card = groupCardTemplate.content
+        .firstElementChild.cloneNode(true);
+
+      card.querySelector(
+        '.group-card-name'
+      ).textContent = group.name;
+
+      card.querySelector(
+        '.group-card-count'
+      ).textContent =
+        group.members.length +
+        (
+          group.members.length === 1
+            ? ' member'
+            : ' members'
+        );
+
+      const faces = card.querySelector(
+        '.group-card-photos'
+      );
+
+      group.members.slice(0, 4).forEach(person => {
+        makeGroupPicture(
+          person,
+          faces,
+          groupListImageURLs
+        );
+      });
+
+      card.querySelector(
+        '.group-card-load'
+      ).addEventListener('click', () => {
+        openGroupLoad(group);
+      });
+
+      card.querySelector(
+        '.group-card-edit'
+      ).addEventListener('click', () => {
+        openGroupEditor(group);
+      });
+
+      card.querySelector(
+        '.group-card-delete'
+      ).addEventListener('click', () => {
+        deleteGroup(group);
+      });
+
+      groupsList.appendChild(card);
+    });
+  }
+
+  async function reloadGroupList() {
+    savedGroups = await groupDatabase('list') || [];
+    renderGroupList();
+  }
+
+  // ==========================================
+  // GROUP MODAL HELPERS
+  // ==========================================
+
+  function showGroupModal(element) {
+    show(element);
+    element.setAttribute('aria-hidden', 'false');
+  }
+
+  function hideGroupModal(element) {
+    hide(element);
+    element.setAttribute('aria-hidden', 'true');
+  }
+
+  function closeGroupWindows() {
+    if (groupBusy) return;
+
+    hideGroupModal(loadModal);
+    hideGroupModal(editorModal);
+    hideGroupModal(groupsModal);
+
+    groupMessage(groupsStatus, '');
+    groupMessage(groupEditorStatus, '');
+    groupMessage(groupLoadStatus, '');
+
+    releaseGroupImages(groupEditorImageURLs);
+    releaseGroupImages(groupListImageURLs);
+
+    groupsList.replaceChildren();
+
+    editingGroupId = null;
+    draftGroupMembers = [];
+    selectedLoadGroup = null;
+  }
+
+  groupButton.addEventListener('click', async () => {
+    if (groupBusy || isLocked()) return;
+
+    showGroupModal(groupsModal);
+
+    groupMessage(
+      groupsStatus,
+      'Loading saved groups...'
+    );
+
+    try {
+      await reloadGroupList();
+
+      groupMessage(groupsStatus, '');
+    } catch (error) {
+      groupMessage(
+        groupsStatus,
+        'Unable to access saved groups in this browser. ' +
+        error.message
+      );
+    }
+  });
+
+  $('close-groups-modal').addEventListener(
+    'click',
+    closeGroupWindows
+  );
+
+  function closeGroupEditor() {
+    if (groupBusy) return;
+
+    hideGroupModal(editorModal);
+    releaseGroupImages(groupEditorImageURLs);
+
+    showGroupModal(groupsModal);
+  }
+
+  $('close-group-editor').addEventListener(
+    'click',
+    closeGroupEditor
+  );
+
+  $('group-editor-cancel').addEventListener(
+    'click',
+    closeGroupEditor
+  );
+
+  $('close-group-load').addEventListener(
+    'click',
+    () => hideGroupModal(loadModal)
+  );
+
+  $('group-load-cancel').addEventListener(
+    'click',
+    () => hideGroupModal(loadModal)
+  );
+
+  [groupsModal, editorModal, loadModal].forEach(element => {
+    element.addEventListener('click', event => {
+      if (
+        event.target !== element ||
+        groupBusy
+      ) {
+        return;
+      }
+
+      if (element === editorModal) {
+        closeGroupEditor();
+      } else if (element === loadModal) {
+        hideGroupModal(loadModal);
+      } else {
+        closeGroupWindows();
+      }
+    });
+  });
+
+  document.addEventListener('keydown', event => {
+    if (
+      event.key !== 'Escape' ||
+      !groupDialogOpen() ||
+      groupBusy
+    ) {
+      return;
+    }
+
+    event.stopImmediatePropagation();
+
+    if (loadModal.classList.contains('open')) {
+      hideGroupModal(loadModal);
+    } else if (editorModal.classList.contains('open')) {
+      closeGroupEditor();
+    } else {
+      closeGroupWindows();
+    }
+  }, true);
+
+  // ==========================================
+  // SAVE CURRENT MEMBERS AS GROUP
+  // ==========================================
+
+  $('save-current-group-form').addEventListener(
+    'submit',
+    async event => {
+      event.preventDefault();
+
+      if (groupBusy || isLocked()) return;
+
+      const name = $('save-current-group-name')
+        .value.trim();
+
+      if (!name) return;
+
+      if (!members.length) {
+        groupMessage(
+          groupsStatus,
+          'Add at least one member before saving the group.'
+        );
+        return;
+      }
+
+      const duplicate = savedGroups.some(group =>
+        group.name.toLowerCase() === name.toLowerCase()
+      );
+
+      if (duplicate) {
+        groupMessage(
+          groupsStatus,
+          'A group with this name already exists. Edit that preset or choose another name.'
+        );
+        return;
+      }
+
+      groupBusy = true;
+
+      groupMessage(
+        groupsStatus,
+        'Saving group and photos...'
+      );
+
+      try {
+        const groupMembers = await Promise.all(
+          members.map(async member => ({
+            name: member.name,
+            color: member.color,
+            shortcut: member.shortcut,
+            photo: await photoBlobFromMember(member),
+            visualPosition: positionCopy(
+              member.visualPosition
+            )
+          }))
+        );
+
+        await groupDatabase('save', {
+          id: groupId(),
+          name,
+          members: groupMembers,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        });
+
+        await reloadGroupList();
+
+        $('save-current-group-form').reset();
+
+        groupMessage(
+          groupsStatus,
+          'Group saved! It will be available in this browser after you return.'
+        );
+      } catch (error) {
+        groupMessage(
+          groupsStatus,
+          'Could not save group: ' + error.message
+        );
+      } finally {
+        groupBusy = false;
+      }
+    }
+  );
+
+  // ==========================================
+  // CREATE AND EDIT GROUP MEMBERS
+  // ==========================================
+
+  function clearGroupMemberFields() {
+    editingGroupMemberIndex = -1;
+    pendingGroupShortcut = '';
+
+    groupMemberForm.reset();
+    groupMemberSubmit.textContent = 'Add Member';
+
+    groupMessage(groupEditorStatus, '');
+  }
+
+  function renderGroupEditorMembers() {
+    releaseGroupImages(groupEditorImageURLs);
+
+    groupEditorMembers.replaceChildren();
+
+    groupEditorEmpty.hidden =
+      draftGroupMembers.length > 0;
+
+    draftGroupMembers.forEach((person, index) => {
+      const card = document.createElement('div');
+
+      card.className = 'group-editor-member';
+      card.style.setProperty(
+        '--member-color',
+        person.color
+      );
+
+      makeGroupPicture(
+        person,
+        card,
+        groupEditorImageURLs
+      );
+
+      const details = document.createElement('div');
+      details.className = 'group-editor-details';
+
+      const name = document.createElement('strong');
+      name.textContent = person.name;
+
+      const key = document.createElement('small');
+      key.textContent = 'Key: ' + person.shortcut;
+
+      details.append(name, key);
+
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.className = 'groups-secondary';
+      edit.textContent = 'Edit';
+
+      edit.addEventListener('click', () => {
+        editingGroupMemberIndex = index;
+        pendingGroupShortcut = person.shortcut;
+
+        groupMemberName.value = person.name;
+        groupMemberColor.value = person.color;
+        groupMemberShortcut.value = person.shortcut;
+
+        groupMemberImage.value = '';
+        groupMemberRemovePhoto.checked = false;
+
+        groupMemberSubmit.textContent = 'Save Member';
+        groupMemberName.focus();
+      });
+
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'groups-secondary';
+      remove.textContent = 'Remove';
+
+      remove.addEventListener('click', () => {
+        draftGroupMembers.splice(index, 1);
+
+        clearGroupMemberFields();
+        renderGroupEditorMembers();
+      });
+
+      card.append(details, edit, remove);
+      groupEditorMembers.appendChild(card);
+    });
+  }
+
+  function openGroupEditor(group = null) {
+    if (groupBusy || isLocked()) return;
+
+    editingGroupId = group ? group.id : null;
+
+    draftGroupMembers = group
+      ? group.members.map(person => ({
+          name: person.name,
+          color: person.color,
+          shortcut: person.shortcut,
+          photo: person.photo instanceof Blob
+            ? person.photo
+            : null,
+          visualPosition: positionCopy(
+            person.visualPosition
+          )
+        }))
+      : [];
+
+    $('group-editor-title').textContent = group
+      ? 'Edit Group'
+      : 'Create Group';
+
+    groupEditorName.value = group
+      ? group.name
+      : '';
+
+    clearGroupMemberFields();
+    renderGroupEditorMembers();
+
+    hideGroupModal(groupsModal);
+    showGroupModal(editorModal);
+
+    groupEditorName.focus();
+  }
+
+  $('create-group-button').addEventListener(
+    'click',
+    () => openGroupEditor()
+  );
+
+  groupMemberShortcut.addEventListener(
+    'keydown',
+    event => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (
+        event.ctrlKey ||
+        event.altKey ||
+        event.metaKey
+      ) {
+        return;
+      }
+
+      const key = event.key.toUpperCase();
+
+      if (!/^[A-Z0-9]$/.test(key)) {
+        groupMessage(
+          groupEditorStatus,
+          'Choose one key from A-Z or 0-9.'
+        );
+        return;
+      }
+
+      const duplicate = draftGroupMembers.some(
+        (person, index) =>
+          index !== editingGroupMemberIndex &&
+          person.shortcut === key
+      );
+
+      if (duplicate) {
+        groupMessage(
+          groupEditorStatus,
+          'That shortcut is already used in this group.'
+        );
+        return;
+      }
+
+      pendingGroupShortcut = key;
+      groupMemberShortcut.value = key;
+
+      groupMessage(groupEditorStatus, '');
+    }
+  );
+
+  groupMemberForm.addEventListener('submit', event => {
+    event.preventDefault();
+
+    if (groupBusy) return;
+
+    const name = groupMemberName.value.trim();
+    if (!name) return;
+
+    if (!pendingGroupShortcut) {
+      groupMessage(
+        groupEditorStatus,
+        'Choose a keyboard shortcut first.'
+      );
+      return;
+    }
+
+    if (
+      editingGroupMemberIndex < 0 &&
+      draftGroupMembers.length >= MAX_GROUP_MEMBERS
+    ) {
+      groupMessage(
+        groupEditorStatus,
+        'Each group can have at most 20 members.'
+      );
+      return;
+    }
+
+    const duplicate = draftGroupMembers.some(
+      (person, index) =>
+        index !== editingGroupMemberIndex &&
+        person.shortcut === pendingGroupShortcut
+    );
+
+    if (duplicate) {
+      groupMessage(
+        groupEditorStatus,
+        'This keyboard shortcut is already taken.'
+      );
+      return;
+    }
+
+    const file = groupMemberImage.files[0];
+
+    if (
+      file &&
+      (
+        !file.type.startsWith('image/') ||
+        file.size > MAX_GROUP_PHOTO_SIZE
+      )
+    ) {
+      groupMessage(
+        groupEditorStatus,
+        'Choose an image under 12 MB.'
+      );
+      return;
+    }
+
+    const previous = editingGroupMemberIndex >= 0
+      ? draftGroupMembers[editingGroupMemberIndex]
+      : null;
+
+    const person = {
+      name,
+      color: groupMemberColor.value,
+      shortcut: pendingGroupShortcut,
+
+      photo: file || (
+        groupMemberRemovePhoto.checked
+          ? null
+          : previous?.photo || null
+      ),
+
+      visualPosition: previous
+        ? positionCopy(previous.visualPosition)
+        : null
+    };
+
+    if (previous) {
+      draftGroupMembers[editingGroupMemberIndex] =
+        person;
+    } else {
+      draftGroupMembers.push(person);
+    }
+
+    clearGroupMemberFields();
+    renderGroupEditorMembers();
+  });
+
+  $('group-member-cancel').addEventListener(
+    'click',
+    clearGroupMemberFields
+  );
+
+  // ==========================================
+  // SAVE CREATED OR EDITED GROUP
+  // ==========================================
+
+  $('group-editor-form').addEventListener(
+    'submit',
+    async event => {
+      event.preventDefault();
+
+      if (groupBusy) return;
+
+      const name = groupEditorName.value.trim();
+      if (!name) return;
+
+      if (!draftGroupMembers.length) {
+        groupMessage(
+          groupEditorStatus,
+          'Add at least one member to your group.'
+        );
+        return;
+      }
+
+      const duplicate = savedGroups.some(group =>
+        group.id !== editingGroupId &&
+        group.name.toLowerCase() === name.toLowerCase()
+      );
+
+      if (duplicate) {
+        groupMessage(
+          groupEditorStatus,
+          'Another saved group already has that name.'
+        );
+        return;
+      }
+
+      groupBusy = true;
+
+      groupMessage(
+        groupEditorStatus,
+        'Saving group...'
+      );
+
+      try {
+        const existing = savedGroups.find(group =>
+          group.id === editingGroupId
+        );
+
+        await groupDatabase('save', {
+          id: editingGroupId || groupId(),
+          name,
+
+          members: draftGroupMembers.map(person => ({
+            name: person.name,
+            color: person.color,
+            shortcut: person.shortcut,
+            photo: person.photo,
+            visualPosition: positionCopy(
+              person.visualPosition
+            )
+          })),
+
+          createdAt: existing?.createdAt || Date.now(),
+          updatedAt: Date.now()
+        });
+
+        await reloadGroupList();
+
+        hideGroupModal(editorModal);
+        releaseGroupImages(groupEditorImageURLs);
+
+        showGroupModal(groupsModal);
+
+        groupMessage(
+          groupsStatus,
+          'Group saved successfully!'
+        );
+      } catch (error) {
+        groupMessage(
+          groupEditorStatus,
+          'Could not save group: ' + error.message
+        );
+      } finally {
+        groupBusy = false;
+      }
+    }
+  );
+
+  // ==========================================
+  // DELETE A SAVED GROUP
+  // ==========================================
+
+  async function deleteGroup(group) {
+    if (groupBusy || isLocked()) return;
+
+    const confirmed = confirm(
+      `Permanently delete group "${group.name}" from this browser?`
+    );
+
+    if (!confirmed) return;
+
+    groupBusy = true;
+
+    try {
+      await groupDatabase('delete', group.id);
+      await reloadGroupList();
+
+      groupMessage(groupsStatus, 'Group deleted.');
+    } catch (error) {
+      groupMessage(
+        groupsStatus,
+        'Could not delete group: ' + error.message
+      );
+    } finally {
+      groupBusy = false;
+    }
+  }
+
+  // ==========================================
+  // LOAD GROUP — REPLACE OR ADD
+  // ==========================================
+
+  function openGroupLoad(group) {
+    if (groupBusy || isLocked()) return;
+
+    selectedLoadGroup = group;
+
+    $('group-load-name').textContent = group.name;
+
+    groupMessage(groupLoadStatus, '');
+    showGroupModal(loadModal);
+  }
+
+  function shortcutForGroup(preferred, used) {
+    if (
+      /^[A-Z0-9]$/.test(preferred) &&
+      !used.has(preferred)
+    ) {
+      used.add(preferred);
+      return preferred;
+    }
+
+    const spare = [...GROUP_KEYS].find(
+      key => !used.has(key)
+    );
+
+    if (spare) used.add(spare);
+
+    return spare || null;
+  }
+
+  async function loadSelectedGroup(mode) {
+    if (
+      groupBusy ||
+      isLocked() ||
+      !selectedLoadGroup
+    ) {
+      return;
+    }
+
+    const source = selectedLoadGroup;
+
+    const existingCount = mode === 'add'
+      ? members.length
+      : 0;
+
+    if (
+      existingCount + source.members.length >
+      MAX_GROUP_MEMBERS
+    ) {
+      groupMessage(
+        groupLoadStatus,
+        'You can have a maximum of 20 members in the project. Remove some members or choose Replace.'
+      );
+      return;
+    }
+
+    if (
+      recordedLines.length > 0 &&
+      !confirm(
+        'Loading this group will clear the current recording results. Continue?'
+      )
+    ) {
+      return;
+    }
+
+    const used = new Set(
+      mode === 'add'
+        ? members.map(member => member.shortcut)
+        : []
+    );
+
+    const assigned = source.members.map(person =>
+      shortcutForGroup(person.shortcut, used)
+    );
+
+    if (assigned.some(key => !key)) {
+      groupMessage(
+        groupLoadStatus,
+        'Not enough free keyboard shortcuts to load this group.'
+      );
+      return;
+    }
+
+    groupBusy = true;
+
+    groupMessage(
+      groupLoadStatus,
+      'Loading members and photos...'
+    );
+
+    const newPhotoURLs = [];
+
+    try {
+      const newMembers = source.members.map(
+        (person, index) => {
+          let photoURL = null;
+
+          if (person.photo instanceof Blob) {
+            photoURL = URL.createObjectURL(person.photo);
+            newPhotoURLs.push(photoURL);
+          }
+
+          return newMember({
+            name: person.name,
+            color: person.color,
+            shortcut: assigned[index],
+            photoURL,
+
+            visualPosition: mode === 'replace'
+              ? positionCopy(person.visualPosition)
+              : null
+          });
+        }
+      );
+
+      audio.pause();
+      audio.currentTime = 0;
+
+      resetRecording();
+
+      if (mode === 'replace') {
+        members.forEach(member => {
+          if (member.photoURL) {
+            URL.revokeObjectURL(member.photoURL);
+          }
+        });
+
+        members.splice(
+          0,
+          members.length,
+          ...newMembers
+        );
+      } else {
+        members.push(...newMembers);
+      }
+
+      renderMembers();
+
+      progress();
+      playLabel();
+      setButtons();
+      setStatus();
+
+      groupBusy = false;
+      closeGroupWindows();
+
+      requestAnimationFrame(layoutVisual);
+    } catch (error) {
+      newPhotoURLs.forEach(url => {
+        URL.revokeObjectURL(url);
+      });
+
+      groupMessage(
+        groupLoadStatus,
+        'Could not load group: ' + error.message
+      );
+
+      groupBusy = false;
+    }
+  }
+
+  $('group-load-replace').addEventListener(
+    'click',
+    () => loadSelectedGroup('replace')
+  );
+
+  $('group-load-add').addEventListener(
+    'click',
+    () => loadSelectedGroup('add')
+  );
+
+  // Restore the saved group library.
+  groupDatabase('list').then(groups => {
+    savedGroups = groups || [];
+  }).catch(() => {
+    // The generator remains usable if storage is blocked.
   });
 
   // ==========================================
   // KEYBOARD CONTROLS
   // ==========================================
 
-  document.addEventListener("keydown", function (event) {
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      hide(memberModal);
+      closeEdit();
+    }
+
     if (
       event.repeat ||
       event.ctrlKey ||
       event.altKey ||
-      event.metaKey
-    ) {
-      return;
-    }
-
-    if (
-      studioScreen.hidden ||
-      modal.classList.contains("open") ||
-      settingsModal.classList.contains("open") ||
-      appearanceOverlay.classList.contains("open")
+      event.metaKey ||
+      studio.hidden ||
+      memberModal.classList.contains('open') ||
+      editOverlay.classList.contains('open') ||
+      appearanceOverlay.classList.contains('open') ||
+      groupDialogOpen()
     ) {
       return;
     }
@@ -2849,7 +3780,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (
       event.target instanceof Element &&
       (
-        event.target.closest("input, textarea, select") ||
+        event.target.closest('input,textarea,select') ||
         event.target.isContentEditable
       )
     ) {
@@ -2857,39 +3788,39 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     if (
-      event.code === "Backquote" ||
-      event.key === "~"
+      event.code === 'Backquote' ||
+      event.key === '~'
     ) {
       event.preventDefault();
       restartAll();
       return;
     }
 
-    if (recordingState !== "recording") return;
+    if (recording !== 'recording') return;
 
     const key = event.key.toUpperCase();
 
     if (!/^[A-Z0-9]$/.test(key)) return;
 
-    const member = members.find(
-      member => member.shortcut === key
+    const member = members.find(person =>
+      person.shortcut === key
     );
 
-    if (!member) return;
-
-    event.preventDefault();
-    toggleMemberLine(member);
+    if (member) {
+      event.preventDefault();
+      toggleLine(member);
+    }
   });
 
   // ==========================================
   // CLEANUP
   // ==========================================
 
-  window.addEventListener("pagehide", function () {
+  window.addEventListener('pagehide', () => {
     stopTimer();
 
-    if (currentMusicURL) {
-      URL.revokeObjectURL(currentMusicURL);
+    if (musicURL) {
+      URL.revokeObjectURL(musicURL);
     }
 
     members.forEach(member => {
@@ -2903,16 +3834,19 @@ document.addEventListener("DOMContentLoaded", function () {
     if (savedBackgroundURL) {
       URL.revokeObjectURL(savedBackgroundURL);
     }
+
+    releaseGroupImages(groupListImageURLs);
+    releaseGroupImages(groupEditorImageURLs);
   });
 
   // ==========================================
   // INITIAL STATE
   // ==========================================
 
-  renderVisualMembers();
-  updateMusicPlayButton();
-  updateMusicProgress();
-  updateButtons();
-  updateStatus();
+  renderMembers();
+  playLabel();
+  progress();
+  setButtons();
+  setStatus();
 
 });
