@@ -2,12 +2,57 @@
 document.addEventListener("DOMContentLoaded", function () {
 
   // ==========================================
-  // SECTION 1 — WELCOME SCREEN
+  // SECTION 1 — ELEMENTS AND DATA
   // ==========================================
 
   const welcomeScreen = document.getElementById("welcome-screen");
   const studioScreen = document.getElementById("studio-screen");
   const modeForm = document.getElementById("mode-form");
+
+  const modal = document.getElementById("member-modal");
+  const openButton = document.getElementById("open-member-modal");
+  const closeButton = document.getElementById("close-member-modal");
+
+  const memberForm = document.getElementById("member-form");
+  const memberList = document.getElementById("member-list-items");
+
+  const nameInput = document.getElementById("member-name");
+  const imageInput = document.getElementById("member-image");
+  const colorInput = document.getElementById("member-color");
+  const shortcutInput = document.getElementById("member-shortcut");
+  const shortcutError = document.getElementById("shortcut-error");
+
+  const classicMembers = document.getElementById("classic-members");
+  const classicLayout = document.getElementById("classic-layout");
+
+  const musicFile = document.getElementById("music-file");
+  const musicAudio = document.getElementById("music-audio");
+  const musicTrackName = document.getElementById("music-track-name");
+  const musicSeek = document.getElementById("music-seek");
+  const musicCurrentTime = document.getElementById("music-current-time");
+  const musicDuration = document.getElementById("music-duration");
+  const musicToggle = document.getElementById("music-toggle");
+  const musicRestart = document.getElementById("music-restart");
+  const musicVolume = document.getElementById("music-volume");
+  const musicError = document.getElementById("music-error");
+
+  const members = [];
+  const recordedLines = [];
+
+  let selectedShortcut = "";
+  let currentMusicURL = null;
+  let musicIsReady = false;
+
+  // idle / recording / awaitingFinish / finished
+  let recordingState = "idle";
+  let animationFrameId = null;
+
+  musicRestart.textContent = "↺ Restart All (~)";
+
+
+  // ==========================================
+  // SECTION 2 — WELCOME SCREEN
+  // ==========================================
 
   modeForm.addEventListener("submit", function (event) {
     event.preventDefault();
@@ -28,43 +73,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   // ==========================================
-  // SECTION 2 — MEMBER SETUP
+  // SECTION 3 — ADD MEMBER MODAL
   // ==========================================
-
-  const modal = document.getElementById("member-modal");
-  const openButton = document.getElementById("open-member-modal");
-  const closeButton = document.getElementById("close-member-modal");
-
-  const memberForm = document.getElementById("member-form");
-  const memberList = document.getElementById("member-list-items");
-
-  const nameInput = document.getElementById("member-name");
-  const imageInput = document.getElementById("member-image");
-  const colorInput = document.getElementById("member-color");
-
-  const shortcutInput = document.getElementById(
-    "member-shortcut"
-  );
-
-  const shortcutError = document.getElementById(
-    "shortcut-error"
-  );
-
-  const classicMembers = document.getElementById(
-    "classic-members"
-  );
-
-  const classicLayout = document.getElementById(
-    "classic-layout"
-  );
-
-  const members = [];
-  const recordedLines = [];
-
-  let selectedShortcut = "";
-
-
-  // ---------- MEMBER ERRORS ----------
 
   function showError(message) {
     shortcutError.textContent = message;
@@ -76,15 +86,14 @@ document.addEventListener("DOMContentLoaded", function () {
     shortcutError.hidden = true;
   }
 
-
-  // ---------- MEMBER MODAL ----------
-
   function closeModal() {
     modal.classList.remove("open");
     clearError();
   }
 
   openButton.addEventListener("click", function () {
+    if (isMemberEditingLocked()) return;
+
     modal.classList.add("open");
     nameInput.focus();
   });
@@ -97,14 +106,31 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape") {
-      closeModal();
+
+  // ---------- CHECK MEMBER SHORTCUT ----------
+
+  function validShortcut(key, currentMember = null) {
+
+    if (!/^[A-Z0-9]$/.test(key)) {
+      return "Choose a letter (A-Z) or number (0-9).";
     }
-  });
+
+    const duplicate = members.some(function (member) {
+      return (
+        member !== currentMember &&
+        member.shortcut === key
+      );
+    });
+
+    if (duplicate) {
+      return "This key is already assigned to another member.";
+    }
+
+    return "";
+  }
 
 
-  // ---------- MEMBER SHORTCUT SETUP ----------
+  // ---------- CAPTURE NEW MEMBER KEY ----------
 
   shortcutInput.addEventListener("keydown", function (event) {
     event.preventDefault();
@@ -117,26 +143,15 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    if (
-      event.ctrlKey ||
-      event.altKey ||
-      event.metaKey ||
-      !/^[A-Z0-9]$/.test(key)
-    ) {
-      showError(
-        "Choose a single letter (A-Z) or number (0-9)."
-      );
+    if (event.ctrlKey || event.altKey || event.metaKey) {
+      showError("Choose a key without Ctrl, Alt or Command.");
       return;
     }
 
-    const alreadyAssigned = members.some(function (member) {
-      return member.shortcut === key;
-    });
+    const error = validShortcut(key);
 
-    if (alreadyAssigned) {
-      showError(
-        "This key is already assigned to another member."
-      );
+    if (error) {
+      showError(error);
       return;
     }
 
@@ -148,13 +163,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   // ==========================================
-  // SECTION 3 — CLASSIC MEMBER ROWS
+  // SECTION 4 — CLASSIC PREVIEW
   // ==========================================
 
   function createClassicPhoto(member) {
 
     if (member.photoURL) {
-
       const image = document.createElement("img");
 
       image.className = "classic-photo";
@@ -164,25 +178,22 @@ document.addEventListener("DOMContentLoaded", function () {
       return image;
     }
 
-    // Placeholder if no photo was uploaded.
+    const letter = document.createElement("div");
 
-    const placeholder = document.createElement("div");
+    letter.className = "classic-photo";
+    letter.textContent = member.name.charAt(0).toUpperCase();
 
-    placeholder.className = "classic-photo";
+    letter.style.cssText = [
+      "display:flex",
+      "align-items:center",
+      "justify-content:center",
+      "font-weight:bold",
+      "font-size:20px"
+    ].join(";");
 
-    placeholder.textContent = member.name
-      .charAt(0)
-      .toUpperCase();
+    letter.style.color = member.color;
 
-    placeholder.style.display = "flex";
-    placeholder.style.alignItems = "center";
-    placeholder.style.justifyContent = "center";
-
-    placeholder.style.fontWeight = "bold";
-    placeholder.style.fontSize = "20px";
-    placeholder.style.color = member.color;
-
-    return placeholder;
+    return letter;
   }
 
 
@@ -193,29 +204,24 @@ document.addEventListener("DOMContentLoaded", function () {
     const row = document.createElement("div");
 
     row.className = "classic-member";
-
-    row.style.setProperty(
-      "--member-color",
-      member.color
-    );
+    row.style.setProperty("--member-color", member.color);
 
 
-    // ---------- CROWN ----------
+    // Crown on the left of the photo.
 
     const crown = document.createElement("span");
 
     crown.className = "classic-crown";
     crown.textContent = "♕";
-
     crown.setAttribute("aria-hidden", "true");
 
 
-    // ---------- PHOTO ----------
+    // Photo
 
     const photo = createClassicPhoto(member);
 
 
-    // ---------- INFORMATION ----------
+    // Information
 
     const info = document.createElement("div");
     info.className = "classic-info";
@@ -224,7 +230,7 @@ document.addEventListener("DOMContentLoaded", function () {
     top.className = "classic-info-top";
 
 
-    // ---------- NAME ----------
+    // Member name
 
     const name = document.createElement("span");
 
@@ -232,7 +238,7 @@ document.addEventListener("DOMContentLoaded", function () {
     name.textContent = member.name;
 
 
-    // ---------- SECONDS ----------
+    // Seconds
 
     const seconds = document.createElement("span");
 
@@ -242,21 +248,19 @@ document.addEventListener("DOMContentLoaded", function () {
     top.append(name, seconds);
 
 
-    // ---------- PROGRESS BAR ----------
+    // Progress bar
 
     const progress = document.createElement("div");
-
     progress.className = "classic-progress";
 
     const fill = document.createElement("div");
-
     fill.className = "classic-progress-fill";
     fill.style.width = "0%";
 
     progress.appendChild(fill);
 
 
-    // ---------- PERCENTAGE ----------
+    // Percentage
 
     const percentage = document.createElement("span");
 
@@ -264,14 +268,14 @@ document.addEventListener("DOMContentLoaded", function () {
     percentage.textContent = "0%";
 
 
-    // ---------- ASSEMBLE ROW ----------
+    // Assemble complete row
 
     info.append(top, progress, percentage);
 
     row.append(crown, photo, info);
 
 
-    // Save elements for real-time updates.
+    // Save references for live updates.
 
     member.classicUI = {
       row: row,
@@ -303,22 +307,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   // ==========================================
-  // SECTION 4 — ANIMATED CLASSIC RANKING
+  // SECTION 5 — ANIMATED RANKING
   // ==========================================
 
   function sortClassicRanking() {
 
-    if (!classicMembers || members.length < 2) {
-      return;
-    }
-
-    // Sort by TOTAL singing time.
-    // If times are equal, keep original member order.
+    if (!classicMembers || members.length < 2) return;
 
     const ranking = members.slice().sort(function (a, b) {
 
-      const difference =
-        b.totalSeconds - a.totalSeconds;
+      const difference = b.totalSeconds - a.totalSeconds;
 
       if (Math.abs(difference) < 0.005) {
         return members.indexOf(a) - members.indexOf(b);
@@ -328,28 +326,22 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
 
-    // Check if the ranking actually changed.
+    // Only animate when positions change.
 
-    const currentRows = Array.from(
-      classicMembers.children
-    );
+    const currentRows = Array.from(classicMembers.children);
 
     const unchanged = ranking.every(function (member, index) {
       return currentRows[index] === member.classicUI.row;
     });
 
-    if (unchanged) {
-      return;
-    }
+    if (unchanged) return;
 
 
-    // ---------- FIRST: OLD POSITIONS ----------
+    // Save old positions.
 
     const before = new Map();
 
     currentRows.forEach(function (row) {
-
-      // Cancel previous ranking movement if necessary.
 
       if (typeof row.getAnimations === "function") {
 
@@ -368,39 +360,34 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
 
-    // ---------- MOVE ROWS INTO NEW ORDER ----------
-
-    // We move existing elements rather than
-    // rebuilding them, so photos and timers stay intact.
+    // Move existing rows.
 
     ranking.forEach(function (member) {
       classicMembers.appendChild(member.classicUI.row);
     });
 
 
-    // ---------- CHECK REDUCED MOTION ----------
+    // Accessibility: reduced motion.
 
-    const reducedMotion =
+    if (
       window.matchMedia &&
       window.matchMedia(
         "(prefers-reduced-motion: reduce)"
-      ).matches;
-
-    if (reducedMotion) {
+      ).matches
+    ) {
       return;
     }
 
 
-    // ---------- ANIMATE NEW POSITIONS ----------
+    // Smooth movement between old and new positions.
 
     ranking.forEach(function (member) {
 
       const row = member.classicUI.row;
 
-      const oldTop = before.get(row);
-      const newTop = row.getBoundingClientRect().top;
-
-      const distance = oldTop - newTop;
+      const distance =
+        before.get(row) -
+        row.getBoundingClientRect().top;
 
       if (
         Math.abs(distance) < 1 ||
@@ -408,9 +395,6 @@ document.addEventListener("DOMContentLoaded", function () {
       ) {
         return;
       }
-
-      // Smooth movement:
-      // old position -> new position.
 
       const animation = row.animate(
         [
@@ -433,7 +417,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   // ==========================================
-  // SECTION 5 — UPDATE CLASSIC VALUES
+  // SECTION 6 — CLASSIC LIVE VALUES
   // ==========================================
 
   function updateClassicValues() {
@@ -445,13 +429,13 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!ui) return;
 
 
-      // ---------- SECONDS ----------
+      // Seconds
 
       ui.seconds.textContent =
         member.totalSeconds.toFixed(1) + "s";
 
 
-      // ---------- PERCENTAGES ----------
+      // Percentage
 
       ui.percentage.textContent =
         member.percentage === 0
@@ -459,7 +443,7 @@ document.addEventListener("DOMContentLoaded", function () {
           : member.percentage.toFixed(1) + "%";
 
 
-      // ---------- PROGRESS BAR ----------
+      // Bar
 
       ui.fill.style.width =
         Math.max(
@@ -468,10 +452,7 @@ document.addEventListener("DOMContentLoaded", function () {
         ) + "%";
 
 
-      // ---------- ACTIVE SINGER GLOW ----------
-
-      // Glow is applied to photo and bar only,
-      // not to the whole member row.
+      // Active singer glow
 
       const singing =
         recordingState === "recording" &&
@@ -494,29 +475,783 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
 
-
-    // Check the ranking after updating the results.
-
     sortClassicRanking();
   }
 
 
   // ==========================================
-  // SECTION 6 — SAVE MEMBER
+  // SECTION 7 — WINNER CROWN
+  // ==========================================
+
+  function updateWinnerCrown() {
+
+    let winner = null;
+
+    if (recordingState === "finished") {
+
+      members.forEach(function (member) {
+
+        if (
+          member.totalSeconds > 0 &&
+          (
+            winner === null ||
+            member.totalSeconds > winner.totalSeconds
+          )
+        ) {
+          winner = member;
+        }
+      });
+    }
+
+
+    if (classicLayout) {
+
+      classicLayout.classList.toggle(
+        "finished",
+        recordingState === "finished"
+      );
+    }
+
+
+    members.forEach(function (member) {
+
+      if (member.classicUI) {
+
+        member.classicUI.row.classList.toggle(
+          "winner",
+          member === winner
+        );
+      }
+    });
+  }
+
+
+  // ==========================================
+  // SECTION 8 — CLICKABLE MEMBER CARDS
+  // ==========================================
+
+  function isMemberEditingLocked() {
+
+    return (
+      recordingState === "recording" ||
+      recordingState === "awaitingFinish"
+    );
+  }
+
+
+  function renderMemberCards() {
+
+    const fragment = document.createDocumentFragment();
+
+    members.forEach(function (member) {
+
+      const card = document.createElement("div");
+
+      card.className = "member-card";
+
+      card.style.setProperty(
+        "--member-color",
+        member.color
+      );
+
+      card.tabIndex = 0;
+
+      card.setAttribute("role", "button");
+
+      card.setAttribute(
+        "aria-label",
+        "Edit member " + member.name
+      );
+
+
+      // Member photo
+
+      if (member.photoURL) {
+
+        const image = document.createElement("img");
+
+        image.src = member.photoURL;
+        image.alt = member.name;
+
+        card.appendChild(image);
+      }
+
+
+      // Member name
+
+      const title = document.createElement("p");
+
+      title.textContent = member.name;
+
+
+      // Shortcut badge
+
+      const badge = document.createElement("span");
+
+      badge.className = "member-shortcut";
+
+      badge.textContent = "Key: " + member.shortcut;
+
+
+      // Edit hint
+
+      const hint = document.createElement("div");
+
+      hint.className = "member-card-edit-hint";
+
+      hint.textContent = "Click to edit ✎";
+
+      card.append(title, badge, hint);
+
+
+      // Open settings by clicking.
+
+      card.addEventListener("click", function () {
+        openSettings(member);
+      });
+
+
+      // Keyboard accessibility.
+
+      card.addEventListener("keydown", function (event) {
+
+        if (
+          event.key === "Enter" ||
+          event.key === " "
+        ) {
+
+          event.preventDefault();
+
+          openSettings(member);
+        }
+      });
+
+      fragment.appendChild(card);
+    });
+
+    memberList.replaceChildren(fragment);
+  }
+
+
+  // ==========================================
+  // SECTION 9 — MEMBER SETTINGS STYLES
+  // ==========================================
+
+  // These styles are added automatically.
+  // style.css does not need to be modified.
+
+  const settingsStyles = document.createElement("style");
+
+  settingsStyles.textContent = `
+    .member-card[role="button"] {
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition:
+        transform 0.2s ease,
+        border-color 0.2s ease;
+    }
+
+    .member-card[role="button"]:hover {
+      transform: translateY(-3px);
+      border-color: var(--member-color);
+    }
+
+    .member-card[role="button"]:focus-visible {
+      outline: 2px solid var(--member-color);
+      outline-offset: 3px;
+    }
+
+    .member-card-edit-hint {
+      font-size: 11px;
+      color: #aaa5ba;
+      margin-top: 10px;
+    }
+
+    .edit-member-form {
+      display: grid;
+      gap: 10px;
+    }
+
+    .edit-member-form label {
+      font-size: 13px;
+      font-weight: bold;
+      color: #e8e3ee;
+      margin-top: 4px;
+    }
+
+    .edit-member-form input[type="text"],
+    .edit-member-form input[type="file"] {
+      width: 100%;
+      min-width: 0;
+      background: #292938;
+      border: 1px solid #454555;
+      border-radius: 8px;
+      padding: 11px;
+      color: #fff;
+      font: inherit;
+    }
+
+    .edit-member-form input[type="color"] {
+      width: 60px;
+      height: 40px;
+      cursor: pointer;
+      border: 1px solid #454555;
+      border-radius: 7px;
+      background: transparent;
+    }
+
+    .edit-member-form .edit-shortcut {
+      text-align: center;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .edit-member-form .photo-preview {
+      width: 64px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border: 2px solid var(--member-color);
+      border-radius: 10px;
+      color: var(--member-color);
+      font-size: 25px;
+      font-weight: bold;
+    }
+
+    .edit-member-form .photo-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .edit-member-form .small-hint {
+      font-size: 12px;
+      color: #aaa5ba;
+      margin: 0;
+    }
+
+    .edit-member-form .edit-actions {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .edit-member-form .delete-member-button {
+      background: #59313d;
+      color: #ffe4ea;
+    }
+
+    .edit-member-form .cancel-member-button {
+      background: #383443;
+      color: #fff;
+    }
+
+    .edit-member-form .edit-error {
+      font-size: 13px;
+      color: #ff9b9b;
+      margin: 0;
+    }
+  `;
+
+  document.head.appendChild(settingsStyles);
+
+
+  // ==========================================
+  // SECTION 10 — MEMBER SETTINGS POP-UP
+  // ==========================================
+
+  const settingsModal = document.createElement("div");
+
+  settingsModal.className = "modal-overlay";
+
+  settingsModal.id = "member-settings-modal";
+
+
+  // Build the settings window.
+
+  settingsModal.innerHTML = `
+    <div
+      class="modal-content"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-member-title"
+    >
+
+      <button
+        type="button"
+        class="close-modal"
+        id="close-edit-member"
+        aria-label="Close"
+      >
+        ×
+      </button>
+
+      <h2 id="edit-member-title">
+        Edit Member
+      </h2>
+
+      <form
+        id="edit-member-form"
+        class="edit-member-form"
+      >
+
+        <div
+          id="edit-photo-preview"
+          class="photo-preview"
+        ></div>
+
+        <label for="edit-member-name">
+          Member Name
+        </label>
+
+        <input
+          id="edit-member-name"
+          type="text"
+          maxlength="30"
+          required
+        >
+
+        <label for="edit-member-color">
+          Member Color
+        </label>
+
+        <input
+          id="edit-member-color"
+          type="color"
+        >
+
+        <label for="edit-member-image">
+          Change Photo
+        </label>
+
+        <input
+          id="edit-member-image"
+          type="file"
+          accept="image/*"
+        >
+
+        <p class="small-hint">
+          Leave empty to keep the current photo.
+        </p>
+
+        <label
+          style="display:flex;align-items:center;gap:9px;font-weight:normal"
+        >
+          <input
+            type="checkbox"
+            id="edit-remove-photo"
+          >
+
+          Remove current photo
+        </label>
+
+        <label for="edit-member-shortcut">
+          Keyboard Shortcut
+        </label>
+
+        <input
+          id="edit-member-shortcut"
+          class="edit-shortcut"
+          type="text"
+          readonly
+          required
+          placeholder="Click and press a key"
+        >
+
+        <p
+          class="edit-error"
+          id="edit-member-error"
+          role="alert"
+          hidden
+        ></p>
+
+        <div class="edit-actions">
+
+          <button type="submit">
+            Save Changes
+          </button>
+
+          <button
+            type="button"
+            id="delete-member"
+            class="delete-member-button"
+          >
+            Remove Member
+          </button>
+
+          <button
+            type="button"
+            id="cancel-edit-member"
+            class="cancel-member-button"
+          >
+            Cancel
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+  `;
+
+
+  // Add settings modal to the studio.
+
+  studioScreen.appendChild(settingsModal);
+
+
+  // ---------- SETTINGS INPUTS ----------
+
+  const editForm = document.getElementById("edit-member-form");
+  const editName = document.getElementById("edit-member-name");
+  const editColor = document.getElementById("edit-member-color");
+  const editImage = document.getElementById("edit-member-image");
+
+  const editShortcut = document.getElementById(
+    "edit-member-shortcut"
+  );
+
+  const editRemovePhoto = document.getElementById(
+    "edit-remove-photo"
+  );
+
+  const editPhotoPreview = document.getElementById(
+    "edit-photo-preview"
+  );
+
+  const editError = document.getElementById("edit-member-error");
+  const deleteButton = document.getElementById("delete-member");
+
+  let editingMember = null;
+  let pendingShortcut = "";
+
+
+  // ==========================================
+  // SECTION 11 — OPEN AND CLOSE SETTINGS
+  // ==========================================
+
+  function showEditError(message) {
+    editError.textContent = message;
+    editError.hidden = false;
+  }
+
+  function clearEditError() {
+    editError.textContent = "";
+    editError.hidden = true;
+  }
+
+  function closeSettings() {
+    settingsModal.classList.remove("open");
+    editingMember = null;
+    clearEditError();
+  }
+
+
+  // ---------- CURRENT PHOTO PREVIEW ----------
+
+  function showCurrentPhoto(member) {
+
+    editPhotoPreview.replaceChildren();
+
+    editPhotoPreview.style.setProperty(
+      "--member-color",
+      editColor.value
+    );
+
+    if (member.photoURL) {
+
+      const image = document.createElement("img");
+
+      image.src = member.photoURL;
+      image.alt = member.name;
+
+      editPhotoPreview.appendChild(image);
+
+    } else {
+
+      editPhotoPreview.textContent =
+        member.name.charAt(0).toUpperCase();
+    }
+  }
+
+
+  // ---------- OPEN MEMBER SETTINGS ----------
+
+  function openSettings(member) {
+
+    // Prevent editing during active recording.
+
+    if (isMemberEditingLocked()) {
+
+      status.textContent =
+        "Finish recording before editing members.";
+
+      return;
+    }
+
+    editingMember = member;
+
+    pendingShortcut = member.shortcut;
+
+    editForm.reset();
+
+    editName.value = member.name;
+    editColor.value = member.color;
+    editShortcut.value = member.shortcut;
+
+    showCurrentPhoto(member);
+
+    clearEditError();
+
+    settingsModal.classList.add("open");
+
+    editName.focus();
+  }
+
+
+  // ---------- CLOSE BUTTONS ----------
+
+  document.getElementById("close-edit-member")
+    .addEventListener("click", closeSettings);
+
+  document.getElementById("cancel-edit-member")
+    .addEventListener("click", closeSettings);
+
+  settingsModal.addEventListener("click", function (event) {
+
+    if (event.target === settingsModal) {
+      closeSettings();
+    }
+  });
+
+
+  // ---------- COLOR PREVIEW ----------
+
+  editColor.addEventListener("input", function () {
+
+    editPhotoPreview.style.setProperty(
+      "--member-color",
+      editColor.value
+    );
+  });
+
+
+  // ==========================================
+  // SECTION 12 — EDIT KEYBOARD SHORTCUT
+  // ==========================================
+
+  editShortcut.addEventListener("keydown", function (event) {
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const key = event.key.toUpperCase();
+
+    if (key === "ESCAPE") {
+      closeSettings();
+      return;
+    }
+
+    if (event.ctrlKey || event.altKey || event.metaKey) {
+
+      showEditError(
+        "Choose a key without Ctrl, Alt or Command."
+      );
+
+      return;
+    }
+
+    const error = validShortcut(key, editingMember);
+
+    if (error) {
+      showEditError(error);
+      return;
+    }
+
+    pendingShortcut = key;
+
+    editShortcut.value = key;
+
+    clearEditError();
+  });
+
+
+  // ==========================================
+  // SECTION 13 — SAVE MEMBER CHANGES
+  // ==========================================
+
+  editForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+
+    if (!editingMember || isMemberEditingLocked()) return;
+
+    const newName = editName.value.trim();
+
+    if (!newName) {
+
+      showEditError("Enter a member name.");
+
+      return;
+    }
+
+    const error = validShortcut(
+      pendingShortcut,
+      editingMember
+    );
+
+    if (error) {
+
+      showEditError(error);
+
+      return;
+    }
+
+
+    // Validate new photo.
+
+    const file = editImage.files[0];
+
+    if (file && !file.type.startsWith("image/")) {
+
+      showEditError("Please select an image file.");
+
+      return;
+    }
+
+
+    // ---------- UPDATE MEMBER ----------
+
+    const member = editingMember;
+
+    const previousURL = member.photoURL;
+
+    let newURL = previousURL;
+
+    if (file) {
+
+      newURL = URL.createObjectURL(file);
+
+    } else if (editRemovePhoto.checked) {
+
+      newURL = null;
+    }
+
+    member.name = newName;
+    member.color = editColor.value;
+    member.shortcut = pendingShortcut;
+    member.photoURL = newURL;
+
+
+    // Update shortcuts stored in existing lines.
+
+    member.lines.forEach(function (line) {
+
+      line.memberShortcut = pendingShortcut;
+    });
+
+
+    // ---------- REFRESH INTERFACE ----------
+
+    closeSettings();
+
+    renderMemberCards();
+    renderClassicMembers();
+
+    updateAllResults();
+    updateWinnerCrown();
+
+
+    // Release old image if it was replaced.
+
+    if (previousURL && previousURL !== newURL) {
+
+      URL.revokeObjectURL(previousURL);
+    }
+  });
+
+
+  // ==========================================
+  // SECTION 14 — REMOVE MEMBER
+  // ==========================================
+
+  deleteButton.addEventListener("click", function () {
+
+    if (!editingMember || isMemberEditingLocked()) return;
+
+    const member = editingMember;
+
+
+    // Ask for confirmation before deleting.
+
+    const confirmed = window.confirm(
+      `Remove ${member.name}? Their recorded lines will also be deleted.`
+    );
+
+    if (!confirmed) return;
+
+    const index = members.indexOf(member);
+
+    if (index === -1) return;
+
+
+    // ---------- DELETE MEMBER ----------
+
+    members.splice(index, 1);
+
+
+    // Remove their recording intervals.
+
+    member.lines.forEach(function (line) {
+
+      const lineIndex = recordedLines.indexOf(line);
+
+      if (lineIndex !== -1) {
+
+        recordedLines.splice(lineIndex, 1);
+      }
+    });
+
+
+    // ---------- REFRESH INTERFACE ----------
+
+    closeSettings();
+
+    renderMemberCards();
+    renderClassicMembers();
+
+    updateAllResults();
+    updateWinnerCrown();
+
+
+    // Free the member photo.
+
+    if (member.photoURL) {
+
+      URL.revokeObjectURL(member.photoURL);
+    }
+  });
+
+
+  // ==========================================
+  // SECTION 15 — CREATE NEW MEMBER
   // ==========================================
 
   memberForm.addEventListener("submit", function (event) {
     event.preventDefault();
 
+    if (isMemberEditingLocked()) return;
+
     if (members.length >= 20) {
+
       showError("You cannot add more members.");
+
       return;
     }
 
     const name = nameInput.value.trim();
-    const color = colorInput.value;
-
-    const photo = imageInput.files[0];
 
     if (!name) return;
 
@@ -525,22 +1260,23 @@ document.addEventListener("DOMContentLoaded", function () {
       showError("Choose a keyboard shortcut first.");
 
       shortcutInput.focus();
+
       return;
     }
 
-    const duplicate = members.some(function (member) {
-      return member.shortcut === selectedShortcut;
-    });
+    const error = validShortcut(selectedShortcut);
 
-    if (duplicate) {
+    if (error) {
 
-      showError("This key is already assigned.");
+      showError(error);
 
       return;
     }
 
 
     // ---------- MEMBER PHOTO ----------
+
+    const photo = imageInput.files[0];
 
     const photoURL = photo
       ? URL.createObjectURL(photo)
@@ -550,8 +1286,9 @@ document.addEventListener("DOMContentLoaded", function () {
     // ---------- MEMBER DATA ----------
 
     const member = {
+
       name: name,
-      color: color,
+      color: colorInput.value,
       shortcut: selectedShortcut,
       photoURL: photoURL,
 
@@ -567,56 +1304,13 @@ document.addEventListener("DOMContentLoaded", function () {
     members.push(member);
 
 
-    // ---------- MEMBER CARD ----------
+    // ---------- REFRESH INTERFACE ----------
 
-    const card = document.createElement("div");
-
-    card.className = "member-card";
-
-    card.style.setProperty(
-      "--member-color",
-      color
-    );
-
-    if (photoURL) {
-
-      const img = document.createElement("img");
-
-      img.src = photoURL;
-      img.alt = name;
-
-      card.appendChild(img);
-    }
-
-
-    // ---------- MEMBER NAME ----------
-
-    const title = document.createElement("p");
-
-    title.textContent = name;
-
-
-    // ---------- MEMBER SHORTCUT ----------
-
-    const badge = document.createElement("span");
-
-    badge.className = "member-shortcut";
-
-    badge.textContent =
-      "Key: " + selectedShortcut;
-
-
-    // ---------- COMPLETE MEMBER CARD ----------
-
-    card.append(title, badge);
-
-    memberList.appendChild(card);
-
-
-    // ---------- UPDATE CLASSIC PREVIEW ----------
-
+    renderMemberCards();
     renderClassicMembers();
+
     updateAllResults();
+    updateWinnerCrown();
 
 
     // ---------- RESET FORM ----------
@@ -629,40 +1323,21 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
 
+  // ---------- ESCAPE KEY ----------
+
+  document.addEventListener("keydown", function (event) {
+
+    if (event.key === "Escape") {
+
+      closeModal();
+      closeSettings();
+    }
+  });
+
+
   // ==========================================
-  // SECTION 7 — MUSIC PLAYER
+  // SECTION 16 — MUSIC PLAYER HELPERS
   // ==========================================
-
-  const musicFile = document.getElementById("music-file");
-  const musicAudio = document.getElementById("music-audio");
-
-  const musicTrackName = document.getElementById(
-    "music-track-name"
-  );
-
-  const musicSeek = document.getElementById("music-seek");
-
-  const musicCurrentTime = document.getElementById(
-    "music-current-time"
-  );
-
-  const musicDuration = document.getElementById(
-    "music-duration"
-  );
-
-  const musicToggle = document.getElementById("music-toggle");
-  const musicRestart = document.getElementById("music-restart");
-
-  const musicVolume = document.getElementById("music-volume");
-  const musicError = document.getElementById("music-error");
-
-  let currentMusicURL = null;
-  let musicIsReady = false;
-
-  musicRestart.textContent = "↺ Restart All (~)";
-
-
-  // ---------- MUSIC ERRORS ----------
 
   function showMusicError(message) {
     musicError.textContent = message;
@@ -705,8 +1380,6 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  // ---------- PLAY BUTTON ----------
-
   function updateMusicPlayButton() {
 
     musicToggle.textContent = musicAudio.paused
@@ -714,8 +1387,6 @@ document.addEventListener("DOMContentLoaded", function () {
       : "⏸ Pause";
   }
 
-
-  // ---------- SONG PROGRESS ----------
 
   function updateMusicProgress() {
 
@@ -740,13 +1411,14 @@ document.addEventListener("DOMContentLoaded", function () {
     } else {
 
       musicSeek.value = 0;
+
       musicDuration.textContent = "0:00";
     }
   }
 
 
   // ==========================================
-  // SECTION 8 — RECORDING PANEL
+  // SECTION 17 — RECORDING PANEL
   // ==========================================
 
   const panel = document.createElement("section");
@@ -764,7 +1436,7 @@ document.addEventListener("DOMContentLoaded", function () {
   ].join(";");
 
 
-  // ---------- PANEL HEADING ----------
+  // ---------- HEADING ----------
 
   const heading = document.createElement("h2");
 
@@ -774,7 +1446,7 @@ document.addEventListener("DOMContentLoaded", function () {
     "color:#ff80c8;margin-top:0";
 
 
-  // ---------- BUTTON CONTAINER ----------
+  // ---------- BUTTON ROW ----------
 
   const buttonRow = document.createElement("div");
 
@@ -786,62 +1458,49 @@ document.addEventListener("DOMContentLoaded", function () {
   ].join(";");
 
 
-  // ---------- START RECORDING ----------
+  // ---------- START BUTTON ----------
 
   const startButton = document.createElement("button");
 
-  startButton.type = "button";
   startButton.id = "start-recording";
+  startButton.type = "button";
 
   startButton.textContent = "● Start Recording";
 
 
-  // ---------- FINISH RECORDING ----------
+  // ---------- FINISH BUTTON ----------
 
   const finishButton = document.createElement("button");
 
-  finishButton.type = "button";
   finishButton.id = "finish-recording";
+  finishButton.type = "button";
 
   finishButton.textContent = "■ Finish Recording";
 
 
-  // ---------- RECORDING STATUS ----------
+  // ---------- STATUS ----------
 
   const status = document.createElement("p");
 
   status.id = "recording-status";
+
   status.style.color = "#c7c7d0";
 
 
-  // ---------- ASSEMBLE PANEL ----------
+  // ---------- ASSEMBLE ----------
 
   buttonRow.append(startButton, finishButton);
 
   panel.append(heading, buttonRow, status);
 
 
-  // Add panel below Music Player.
-
   document.querySelector(".music-player")
     .insertAdjacentElement("afterend", panel);
 
 
   // ==========================================
-  // SECTION 9 — RECORDING STATE
+  // SECTION 18 — RECORDING BUTTON STATES
   // ==========================================
-
-  // idle
-  // recording
-  // awaitingFinish
-  // finished
-
-  let recordingState = "idle";
-
-  let animationFrameId = null;
-
-
-  // ---------- ENABLE / DISABLE BUTTONS ----------
 
   function updateButtons() {
 
@@ -863,10 +1522,13 @@ document.addEventListener("DOMContentLoaded", function () {
       !musicIsReady ||
       recordingState === "recording" ||
       recordingState === "awaitingFinish";
+
+
+    // Do not allow adding members during recording.
+
+    openButton.disabled = isMemberEditingLocked();
   }
 
-
-  // ---------- RECORDING STATUS ----------
 
   function updateStatus() {
 
@@ -924,7 +1586,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   // ==========================================
-  // SECTION 10 — LIVE RECORDING RESULTS
+  // SECTION 19 — RECORDING RESULTS
   // ==========================================
 
   function updateAllResults() {
@@ -934,7 +1596,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let combined = 0;
 
 
-    // ---------- MEMBER SECONDS ----------
+    // ---------- SECONDS ----------
 
     members.forEach(function (member) {
 
@@ -949,7 +1611,6 @@ document.addEventListener("DOMContentLoaded", function () {
             0,
             end - line.start
           );
-
         },
         0
       );
@@ -958,9 +1619,9 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
 
-    // ---------- MEMBER PERCENTAGES ----------
+    // ---------- PERCENTAGES ----------
 
-    // Overlapping vocals are counted separately.
+    // Overlapping vocals count separately.
 
     members.forEach(function (member) {
 
@@ -977,12 +1638,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   // ==========================================
-  // SECTION 11 — LIVE TIMER
+  // SECTION 20 — LIVE TIMER
   // ==========================================
 
   function stopTimer() {
 
     if (animationFrameId !== null) {
+
       cancelAnimationFrame(animationFrameId);
     }
 
@@ -1000,6 +1662,7 @@ document.addEventListener("DOMContentLoaded", function () {
       recordingState === "recording" &&
       !musicAudio.paused
     ) {
+
       animationFrameId = requestAnimationFrame(tick);
     }
   }
@@ -1012,13 +1675,14 @@ document.addEventListener("DOMContentLoaded", function () {
       recordingState === "recording" &&
       !musicAudio.paused
     ) {
+
       animationFrameId = requestAnimationFrame(tick);
     }
   }
 
 
   // ==========================================
-  // SECTION 12 — MEMBER KEY TOGGLE
+  // SECTION 21 — MEMBER RECORDING KEYS
   // ==========================================
 
   function toggleMemberLine(member) {
@@ -1033,7 +1697,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const now = musicAudio.currentTime;
 
 
-    // ---------- END MEMBER LINE ----------
+    // ---------- END LINE ----------
 
     if (member.activeLine !== null) {
 
@@ -1043,15 +1707,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
     } else {
 
-      // ---------- START MEMBER LINE ----------
+      // ---------- START LINE ----------
 
       const line = {
+
         memberShortcut: member.shortcut,
+
         start: now,
         end: null
       };
 
       member.lines.push(line);
+
       recordedLines.push(line);
 
       member.activeLine = line;
@@ -1062,7 +1729,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  // ---------- CLOSE ALL ACTIVE LINES ----------
+  // ---------- CLOSE ACTIVE LINES ----------
 
   function closeAllActiveLines(endTime) {
 
@@ -1082,7 +1749,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   // ==========================================
-  // SECTION 13 — START RECORDING
+  // SECTION 22 — START RECORDING
   // ==========================================
 
   async function startRecording() {
@@ -1105,20 +1772,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
     updateButtons();
 
-
-    // Remove focus from the Start button,
-    // so member shortcuts work immediately.
-
     startButton.blur();
 
-
-    // ---------- START MUSIC ----------
 
     try {
 
       await musicAudio.play();
 
       updateStatus();
+
       startTimer();
 
     } catch (error) {
@@ -1140,7 +1802,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   // ==========================================
-  // SECTION 14 — FINISH RECORDING
+  // SECTION 23 — FINISH RECORDING
   // ==========================================
 
   function finishRecording() {
@@ -1153,8 +1815,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
-    // ---------- SAVE ACTIVE LINES ----------
-
     closeAllActiveLines(musicAudio.currentTime);
 
     recordingState = "finished";
@@ -1165,42 +1825,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     updateAllResults();
 
-
-    // ---------- FIND WINNER ----------
-
-    let winner = null;
-
-    members.forEach(function (member) {
-
-      if (
-        member.totalSeconds > 0 &&
-        (
-          winner === null ||
-          member.totalSeconds > winner.totalSeconds
-        )
-      ) {
-        winner = member;
-      }
-    });
-
-
-    // ---------- SHOW WINNER CROWN ----------
-
-    if (classicLayout) {
-
-      classicLayout.classList.add("finished");
-    }
-
-    members.forEach(function (member) {
-
-      if (member.classicUI) {
-
-        member.classicUI.row.classList.toggle(
-          "winner",
-          member === winner
-        );
-      }
-    });
+    updateWinnerCrown();
 
     updateButtons();
     updateStatus();
@@ -1211,7 +1836,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   // ==========================================
-  // SECTION 15 — RESET RECORDING
+  // SECTION 24 — RESET RECORDING
   // ==========================================
 
   function resetRecording() {
@@ -1223,8 +1848,6 @@ document.addEventListener("DOMContentLoaded", function () {
     recordedLines.length = 0;
 
 
-    // ---------- RESET MEMBERS ----------
-
     members.forEach(function (member) {
 
       member.lines = [];
@@ -1232,25 +1855,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
       member.totalSeconds = 0;
       member.percentage = 0;
-
-      if (member.classicUI) {
-
-        member.classicUI.row.classList.remove("winner");
-      }
     });
 
 
-    // ---------- HIDE CROWN ----------
-
-    if (classicLayout) {
-
-      classicLayout.classList.remove("finished");
-    }
-
-
-    // ---------- UPDATE UI ----------
-
     updateAllResults();
+
+    updateWinnerCrown();
 
     updateButtons();
     updateStatus();
@@ -1258,7 +1868,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   // ==========================================
-  // SECTION 16 — RESTART ALL (~)
+  // SECTION 25 — RESTART ALL (~)
   // ==========================================
 
   function restartAll() {
@@ -1279,7 +1889,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   // ==========================================
-  // SECTION 17 — LOAD MP3
+  // SECTION 26 — LOAD MP3
   // ==========================================
 
   musicFile.addEventListener("change", function () {
@@ -1305,7 +1915,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
-    // ---------- RESET PREVIOUS RECORDING ----------
+    // ---------- RESET OLD RECORDING ----------
 
     musicAudio.pause();
 
@@ -1326,12 +1936,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
     musicAudio.load();
 
+
     if (previousURL) {
+
       URL.revokeObjectURL(previousURL);
     }
 
 
-    // ---------- DISPLAY SONG NAME ----------
+    // ---------- SONG NAME ----------
 
     musicTrackName.textContent = file.name.replace(
       /\.mp3$/i,
@@ -1350,7 +1962,7 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
 
-  // ---------- MP3 METADATA ----------
+  // ---------- METADATA ----------
 
   musicAudio.addEventListener("loadedmetadata", function () {
 
@@ -1358,15 +1970,15 @@ document.addEventListener("DOMContentLoaded", function () {
       Number.isFinite(musicAudio.duration) &&
       musicAudio.duration > 0;
 
-    if (!musicIsReady) {
+    if (musicIsReady) {
+
+      clearMusicError();
+
+    } else {
 
       showMusicError(
         "Could not read this MP3 file's duration."
       );
-
-    } else {
-
-      clearMusicError();
     }
 
     updateMusicProgress();
@@ -1377,7 +1989,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   // ==========================================
-  // SECTION 18 — MUSIC PLAY / PAUSE
+  // SECTION 27 — MUSIC PLAY / PAUSE
   // ==========================================
 
   musicToggle.addEventListener("click", async function () {
@@ -1387,6 +1999,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (recordingState === "awaitingFinish") return;
 
     clearMusicError();
+
 
     if (musicAudio.paused) {
 
@@ -1410,7 +2023,7 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
 
-  // ---------- MUSIC SEEK ----------
+  // ---------- SEEK ----------
 
   musicSeek.addEventListener("input", function () {
 
@@ -1433,19 +2046,18 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
 
-  // ---------- MUSIC VOLUME ----------
+  // ---------- VOLUME ----------
 
   musicVolume.addEventListener("input", function () {
 
-    musicAudio.volume =
-      Number(musicVolume.value);
+    musicAudio.volume = Number(musicVolume.value);
   });
 
   musicAudio.volume = Number(musicVolume.value);
 
 
   // ==========================================
-  // SECTION 19 — AUDIO EVENTS
+  // SECTION 28 — AUDIO EVENTS
   // ==========================================
 
   musicAudio.addEventListener("timeupdate", function () {
@@ -1465,7 +2077,7 @@ document.addEventListener("DOMContentLoaded", function () {
   );
 
 
-  // ---------- AUDIO PLAY ----------
+  // ---------- PLAY ----------
 
   musicAudio.addEventListener("play", function () {
 
@@ -1476,7 +2088,7 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
 
-  // ---------- AUDIO PAUSE ----------
+  // ---------- PAUSE ----------
 
   musicAudio.addEventListener("pause", function () {
 
@@ -1538,12 +2150,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   // ==========================================
-  // SECTION 20 — KEYBOARD SHORTCUTS
+  // SECTION 29 — KEYBOARD CONTROLS
   // ==========================================
 
   document.addEventListener("keydown", function (event) {
-
-    // Ignore repeated keys and combinations.
 
     if (
       event.repeat ||
@@ -1554,12 +2164,16 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    if (studioScreen.hidden) return;
+    if (
+      studioScreen.hidden ||
+      modal.classList.contains("open") ||
+      settingsModal.classList.contains("open")
+    ) {
+      return;
+    }
 
-    if (modal.classList.contains("open")) return;
 
-
-    // Do not activate shortcuts while editing inputs.
+    // Ignore shortcuts while typing.
 
     if (
       event.target instanceof Element &&
@@ -1589,7 +2203,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
-    // ---------- MEMBER SHORTCUTS ----------
+    // ---------- MEMBER KEYS ----------
 
     if (recordingState !== "recording") return;
 
@@ -1610,7 +2224,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   // ==========================================
-  // SECTION 21 — CLEANUP
+  // SECTION 30 — CLEANUP
   // ==========================================
 
   window.addEventListener("pagehide", function () {
@@ -1637,7 +2251,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   // ==========================================
-  // SECTION 22 — INITIAL STATE
+  // SECTION 31 — INITIAL STATE
   // ==========================================
 
   updateMusicPlayButton();
