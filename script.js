@@ -1,37 +1,27 @@
 
 document.addEventListener("DOMContentLoaded", function () {
-
-  // ==========================================
-  // 1. ELEMENTS AND DATA
-  // ==========================================
-
   const $ = id => document.getElementById(id);
 
   const welcomeScreen = $("welcome-screen");
   const studioScreen = $("studio-screen");
   const modeForm = $("mode-form");
-
   const modal = $("member-modal");
   const openButton = $("open-member-modal");
   const closeButton = $("close-member-modal");
   const memberForm = $("member-form");
   const memberList = $("member-list-items");
-
   const nameInput = $("member-name");
   const imageInput = $("member-image");
   const colorInput = $("member-color");
   const shortcutInput = $("member-shortcut");
   const shortcutError = $("shortcut-error");
-
   const classicMembers = $("classic-members");
   const classicLayout = $("classic-layout");
-
   const visualLayout = $("visual-layout");
   const visualStage = $("visual-stage");
   const visualMembers = $("visual-members");
   const visualTemplate = $("visual-member-template");
   const visualDragHint = $("visual-drag-hint");
-
   const musicFile = $("music-file");
   const musicAudio = $("music-audio");
   const musicTrackName = $("music-track-name");
@@ -54,10 +44,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   musicRestart.textContent = "↺ Restart All (~)";
 
-
-  // ==========================================
-  // 2. WELCOME SCREEN
-  // ==========================================
+  // WELCOME SCREEN
 
   modeForm.addEventListener("submit", function (event) {
     event.preventDefault();
@@ -72,15 +59,11 @@ document.addEventListener("DOMContentLoaded", function () {
     welcomeScreen.hidden = true;
     studioScreen.hidden = false;
 
-    // Visual only has a measurable size once its screen is visible.
     requestAnimationFrame(layoutVisualMembers);
     window.scrollTo(0, 0);
   });
 
-
-  // ==========================================
-  // 3. ADD MEMBER
-  // ==========================================
+  // ADD MEMBER
 
   function showError(message) {
     shortcutError.textContent = message;
@@ -152,10 +135,7 @@ document.addEventListener("DOMContentLoaded", function () {
     clearError();
   });
 
-
-  // ==========================================
-  // 4. CLASSIC MEMBER ROWS
-  // ==========================================
+  // CLASSIC MEMBER ROWS
 
   function createClassicPhoto(member) {
     if (member.photoURL) {
@@ -167,21 +147,19 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     const letter = document.createElement("div");
-
     letter.className = "classic-photo";
     letter.textContent = member.name.charAt(0).toUpperCase();
+
     letter.style.cssText =
       "display:flex;align-items:center;justify-content:center;" +
       "font-weight:bold;font-size:20px";
 
     letter.style.color = member.color;
-
     return letter;
   }
 
   function createClassicRow(member) {
     const row = document.createElement("div");
-
     row.className = "classic-member";
     row.style.setProperty("--member-color", member.color);
 
@@ -248,10 +226,7 @@ document.addEventListener("DOMContentLoaded", function () {
     classicMembers.replaceChildren(fragment);
   }
 
-
-  // ==========================================
-  // 5. ANIMATED CLASSIC RANKING
-  // ==========================================
+  // ANIMATED CLASSIC RANKING
 
   function sortClassicRanking() {
     if (!classicMembers || members.length < 2) return;
@@ -386,6 +361,7 @@ document.addEventListener("DOMContentLoaded", function () {
           member === winner
         );
       }
+
       if (member.visualUI) {
         member.visualUI.node.classList.toggle(
           "is-winner",
@@ -395,54 +371,67 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-
-
   // ==========================================
-  // 6. VISUAL LINE DISTRIBUTION — 16:9
+  // VISUAL LINE DISTRIBUTION — CSS
   // ==========================================
-
-  // All Visual CSS is injected here. No separate CSS edit is needed.
-  // The HTML template was added in the previous index.html update.
 
   const visualStyles = document.createElement("style");
   visualStyles.id = "visual-line-distribution-styles";
+
   visualStyles.textContent = `
     #studio-screen[data-visual-mode="visual"] .preview {
       aspect-ratio: 16 / 9;
       max-width: 960px;
       background: #101018 !important;
     }
+
     #visual-layout {
       position: relative;
       padding: clamp(6px, 2vw, 22px);
       overflow: hidden;
     }
+
     #visual-stage {
       position: relative;
-      width: 100%; height: 100%;
-      min-width: 0; min-height: 0;
+      width: 100%;
+      height: 100%;
+      min-width: 0;
+      min-height: 0;
     }
+
     #visual-members {
-      position: absolute; inset: 0;
-      width: 100%; height: 100%;
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
       pointer-events: none;
     }
+
     #visual-empty-state {
-      position: absolute; inset: 0;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       pointer-events: none;
     }
-    #visual-stage:has(#visual-members:not(:empty)) #visual-empty-state {
+
+    #visual-stage:has(#visual-members:not(:empty))
+    #visual-empty-state {
       display: none;
     }
+
     .visual-member {
       position: absolute;
-      left: 50%; top: 50%;
+      left: 50%;
+      top: 50%;
       width: var(--visual-card-width, 125px);
       transform: translate(-50%, -50%);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: flex-start;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
       gap: 2px;
       padding: 0;
       text-align: center;
@@ -453,10 +442,12 @@ document.addEventListener("DOMContentLoaded", function () {
       pointer-events: auto;
       z-index: 1;
     }
+
     .visual-member.is-dragging {
       z-index: 5;
       cursor: grabbing;
     }
+
     .visual-avatar {
       position: relative;
       flex: none;
@@ -464,18 +455,27 @@ document.addEventListener("DOMContentLoaded", function () {
       height: var(--visual-photo-size, 96px);
       transition: transform .19s ease, filter .19s ease;
     }
+
     .visual-progress-ring {
-      position: absolute; inset: 0;
+      position: absolute;
+      inset: 0;
       display: block;
-      width: 100%; height: 100%;
+      width: 100%;
+      height: 100%;
       overflow: visible;
       pointer-events: none;
     }
-    .visual-ring-track, .visual-ring-fill {
+
+    .visual-ring-track,
+    .visual-ring-fill {
       fill: none;
       stroke-width: 7;
     }
-    .visual-ring-track { stroke: #393846; }
+
+    .visual-ring-track {
+      stroke: #393846;
+    }
+
     .visual-ring-fill {
       stroke: var(--member-color, #ff80c8);
       stroke-linecap: round;
@@ -483,21 +483,27 @@ document.addEventListener("DOMContentLoaded", function () {
       transform-origin: 50% 50%;
       transition: stroke-dashoffset .14s linear;
     }
-    .visual-photo, .visual-initial {
+
+    .visual-photo,
+    .visual-initial {
       position: absolute;
       inset: 11%;
-      width: 78%; height: 78%;
+      width: 78%;
+      height: 78%;
       border-radius: 50%;
       border: 2px solid var(--member-color, #ff80c8);
       background: #292938;
-      box-shadow: 0 0 9px color-mix(in srgb, var(--member-color) 55%, transparent);
+      box-shadow: 0 0 9px
+        color-mix(in srgb, var(--member-color) 55%, transparent);
     }
+
     .visual-photo {
       object-fit: cover;
       display: block;
       pointer-events: none;
       -webkit-user-drag: none;
     }
+
     .visual-initial {
       display: flex;
       align-items: center;
@@ -506,68 +512,119 @@ document.addEventListener("DOMContentLoaded", function () {
       font-size: calc(var(--visual-photo-size, 96px) * .35);
       font-weight: 800;
     }
-    .visual-photo[hidden], .visual-initial[hidden] {
+
+    .visual-photo[hidden],
+    .visual-initial[hidden] {
       display: none !important;
     }
+
     .visual-crown {
       position: absolute;
-      left: 50%; top: -27%;
+      left: 50%;
+      top: -27%;
       transform: translateX(-50%);
       font-size: calc(var(--visual-photo-size, 96px) * .36);
       line-height: 1;
       color: #fff;
       visibility: hidden;
-      filter: drop-shadow(0 0 5px var(--member-color))
-              drop-shadow(0 0 8px var(--member-color));
+      filter:
+        drop-shadow(0 0 5px var(--member-color))
+        drop-shadow(0 0 8px var(--member-color));
       pointer-events: none;
     }
-    .visual-member.is-winner .visual-crown { visibility: visible; }
+
+    .visual-member.is-winner .visual-crown {
+      visibility: visible;
+    }
+
     .visual-member-info {
-      display: flex; flex-direction: column;
-      align-items: center; gap: 1px;
-      width: 100%; min-width: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+      width: 100%;
+      min-width: 0;
       font-variant-numeric: tabular-nums;
       line-height: 1.14;
     }
+
     .visual-name {
       width: 100%;
       color: var(--member-color, #ff80c8);
       font-weight: 800;
-      font-size: clamp(8px, calc(var(--visual-photo-size, 96px) * .14), 15px);
+      font-size: clamp(
+        8px,
+        calc(var(--visual-photo-size, 96px) * .14),
+        15px
+      );
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
     }
+
     .visual-seconds {
       color: white;
-      font-size: clamp(8px, calc(var(--visual-photo-size, 96px) * .125), 14px);
+      font-size: clamp(
+        8px,
+        calc(var(--visual-photo-size, 96px) * .125),
+        14px
+      );
       font-weight: 700;
     }
+
     .visual-percentage {
       color: #cccbd7;
-      font-size: clamp(8px, calc(var(--visual-photo-size, 96px) * .115), 13px);
+      font-size: clamp(
+        8px,
+        calc(var(--visual-photo-size, 96px) * .115),
+        13px
+      );
     }
-    .visual-member.is-singing { z-index: 3; }
+
+    .visual-member.is-singing {
+      z-index: 3;
+    }
+
     .visual-member.is-singing .visual-avatar {
       transform: scale(1.12);
-      filter: drop-shadow(0 0 8px var(--member-color))
-              drop-shadow(0 0 12px var(--member-color));
+      filter:
+        drop-shadow(0 0 8px var(--member-color))
+        drop-shadow(0 0 12px var(--member-color));
     }
-    .visual-member.is-dragging .visual-avatar { transform: none; }
+
+    .visual-member.is-dragging .visual-avatar {
+      transform: none;
+    }
+
     #visual-drag-hint {
       position: absolute;
-      bottom: 1%; left: 0; right: 0;
-      width: 100%; margin: 0;
+      bottom: 1%;
+      left: 0;
+      right: 0;
+      width: 100%;
+      margin: 0;
       font-size: clamp(8px, 1.15vw, 12px);
       color: #9996ab;
       pointer-events: none;
     }
-    #visual-drag-hint[hidden] { display: none !important; }
+
+    #visual-drag-hint[hidden] {
+      display: none !important;
+    }
+
     @media (prefers-reduced-motion: reduce) {
-      .visual-avatar, .visual-ring-fill { transition: none; }
+      .visual-avatar,
+      .visual-ring-fill {
+        transition: none;
+      }
     }
   `;
+
   document.head.appendChild(visualStyles);
+
+  // ==========================================
+  // VISUAL — POSITIONS AND DRAGGING
+  // ==========================================
 
   const VISUAL_CIRCUMFERENCE = 2 * Math.PI * 53;
 
@@ -579,19 +636,35 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function clampVisualPosition(member) {
-    if (!visualStage || !member.visualUI || !member.visualPosition) return;
+    if (
+      !visualStage ||
+      !member.visualUI ||
+      !member.visualPosition
+    ) {
+      return;
+    }
 
     const rect = visualStage.getBoundingClientRect();
+
     if (!rect.width || !rect.height) return;
 
     const card = member.visualUI.node;
-    const horizontalPadding = Math.min(48, card.offsetWidth / rect.width * 50);
-    const verticalPadding = Math.min(48, card.offsetHeight / rect.height * 50);
+
+    const horizontalPadding = Math.min(
+      48,
+      card.offsetWidth / rect.width * 50
+    );
+
+    const verticalPadding = Math.min(
+      48,
+      card.offsetHeight / rect.height * 50
+    );
 
     member.visualPosition.x = Math.min(
       100 - horizontalPadding,
       Math.max(horizontalPadding, member.visualPosition.x)
     );
+
     member.visualPosition.y = Math.min(
       100 - verticalPadding,
       Math.max(verticalPadding, member.visualPosition.y)
@@ -602,42 +675,68 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!member.visualUI || !member.visualPosition) return;
 
     clampVisualPosition(member);
-    member.visualUI.node.style.left = member.visualPosition.x + "%";
-    member.visualUI.node.style.top = member.visualPosition.y + "%";
+
+    member.visualUI.node.style.left =
+      member.visualPosition.x + "%";
+
+    member.visualUI.node.style.top =
+      member.visualPosition.y + "%";
   }
 
   function layoutVisualMembers() {
-    if (!visualStage || !visualMembers || members.length === 0) return;
+    if (!visualStage || !visualMembers || members.length === 0) {
+      return;
+    }
 
     const rect = visualStage.getBoundingClientRect();
+
     if (!rect.width || !rect.height) return;
 
     const columns = visualColumnCount(members.length);
     const rows = Math.ceil(members.length / columns);
+
     const cellWidth = rect.width / columns;
     const cellHeight = rect.height / rows;
 
     const photoSize = Math.max(
       25,
-      Math.min(116, Math.floor(Math.min(cellWidth * .73, cellHeight * .64)))
+      Math.min(
+        116,
+        Math.floor(Math.min(
+          cellWidth * .73,
+          cellHeight * .64
+        ))
+      )
     );
+
     const cardWidth = Math.max(
       35,
       Math.min(cellWidth * .94, photoSize * 1.47)
     );
 
-    visualStage.style.setProperty("--visual-photo-size", photoSize + "px");
-    visualStage.style.setProperty("--visual-card-width", cardWidth + "px");
+    visualStage.style.setProperty(
+      "--visual-photo-size",
+      photoSize + "px"
+    );
+
+    visualStage.style.setProperty(
+      "--visual-card-width",
+      cardWidth + "px"
+    );
 
     members.forEach(function (member, index) {
       const row = Math.floor(index / columns);
       const indexInRow = index % columns;
+
       const countInRow = Math.min(
         columns,
         members.length - row * columns
       );
 
-      if (!member.visualPosition || !member.visualPosition.custom) {
+      if (
+        !member.visualPosition ||
+        !member.visualPosition.custom
+      ) {
         member.visualPosition = {
           x: (indexInRow + 1) / (countInRow + 1) * 100,
           y: (row + .5) / rows * 100,
@@ -656,9 +755,12 @@ document.addEventListener("DOMContentLoaded", function () {
       if (
         isMemberEditingLocked() ||
         (event.pointerType === "mouse" && event.button !== 0)
-      ) return;
+      ) {
+        return;
+      }
 
       const rect = visualStage.getBoundingClientRect();
+
       if (!rect.width || !rect.height) return;
 
       event.preventDefault();
@@ -679,13 +781,19 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!drag || event.pointerId !== drag.pointerId) return;
 
       const rect = visualStage.getBoundingClientRect();
+
       if (!rect.width || !rect.height) return;
 
       member.visualPosition = {
-        x: drag.x + (event.clientX - drag.clientX) / rect.width * 100,
-        y: drag.y + (event.clientY - drag.clientY) / rect.height * 100,
+        x: drag.x +
+          (event.clientX - drag.clientX) / rect.width * 100,
+
+        y: drag.y +
+          (event.clientY - drag.clientY) / rect.height * 100,
+
         custom: true
       };
+
       moveVisualMember(member);
     });
 
@@ -694,6 +802,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       drag = null;
       node.classList.remove("is-dragging");
+
       if (node.hasPointerCapture(event.pointerId)) {
         node.releasePointerCapture(event.pointerId);
       }
@@ -701,16 +810,27 @@ document.addEventListener("DOMContentLoaded", function () {
 
     node.addEventListener("pointerup", stopDrag);
     node.addEventListener("pointercancel", stopDrag);
+
     node.addEventListener("lostpointercapture", function () {
       drag = null;
       node.classList.remove("is-dragging");
     });
   }
 
+  // ==========================================
+  // VISUAL — MEMBER RENDERING
+  // ==========================================
+
   function createVisualMember(member) {
-    const node = visualTemplate.content.firstElementChild.cloneNode(true);
+    const node = visualTemplate.content
+      .firstElementChild.cloneNode(true);
+
     node.style.setProperty("--member-color", member.color);
-    node.setAttribute("aria-label", "Move " + member.name);
+
+    node.setAttribute(
+      "aria-label",
+      "Move " + member.name
+    );
 
     const image = node.querySelector(".visual-photo");
     const initial = node.querySelector(".visual-initial");
@@ -728,15 +848,27 @@ document.addEventListener("DOMContentLoaded", function () {
       image.removeAttribute("src");
       image.hidden = true;
       initial.hidden = false;
-      initial.textContent = member.name.charAt(0).toUpperCase();
+      initial.textContent =
+        member.name.charAt(0).toUpperCase();
     }
 
     name.textContent = member.name;
-    ring.style.strokeDasharray = String(VISUAL_CIRCUMFERENCE);
-    ring.style.strokeDashoffset = String(VISUAL_CIRCUMFERENCE);
 
-    member.visualUI = { node, ring, seconds, percentage };
+    ring.style.strokeDasharray =
+      String(VISUAL_CIRCUMFERENCE);
+
+    ring.style.strokeDashoffset =
+      String(VISUAL_CIRCUMFERENCE);
+
+    member.visualUI = {
+      node,
+      ring,
+      seconds,
+      percentage
+    };
+
     attachVisualDrag(member, node);
+
     return node;
   }
 
@@ -744,11 +876,17 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!visualMembers || !visualTemplate) return;
 
     const fragment = document.createDocumentFragment();
-    members.forEach(member => fragment.appendChild(createVisualMember(member)));
+
+    members.forEach(member => {
+      fragment.appendChild(createVisualMember(member));
+    });
+
     visualMembers.replaceChildren(fragment);
 
     if (visualDragHint) {
-      visualDragHint.hidden = members.length === 0 || isMemberEditingLocked();
+      visualDragHint.hidden =
+        members.length === 0 ||
+        isMemberEditingLocked();
     }
 
     layoutVisualMembers();
@@ -757,14 +895,22 @@ document.addEventListener("DOMContentLoaded", function () {
   function updateVisualValues() {
     members.forEach(function (member) {
       const ui = member.visualUI;
+
       if (!ui) return;
 
-      ui.seconds.textContent = member.totalSeconds.toFixed(1) + "s";
-      ui.percentage.textContent = member.percentage === 0
-        ? "0%"
-        : member.percentage.toFixed(1) + "%";
+      ui.seconds.textContent =
+        member.totalSeconds.toFixed(1) + "s";
 
-      const fraction = Math.max(0, Math.min(1, member.percentage / 100));
+      ui.percentage.textContent =
+        member.percentage === 0
+          ? "0%"
+          : member.percentage.toFixed(1) + "%";
+
+      const fraction = Math.max(
+        0,
+        Math.min(1, member.percentage / 100)
+      );
+
       ui.ring.style.strokeDashoffset = String(
         VISUAL_CIRCUMFERENCE * (1 - fraction)
       );
@@ -778,7 +924,6 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Responsive stage; customized positions are stored as percentages.
   if (visualStage && typeof ResizeObserver !== "undefined") {
     const visualObserver = new ResizeObserver(layoutVisualMembers);
     visualObserver.observe(visualStage);
@@ -787,7 +932,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // ==========================================
-  // 7. CLICKABLE MEMBER CARDS
+  // MEMBER CARDS
   // ==========================================
 
   function isMemberEditingLocked() {
@@ -815,8 +960,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (member.photoURL) {
         const image = document.createElement("img");
+
         image.src = member.photoURL;
         image.alt = member.name;
+
         card.appendChild(image);
       }
 
@@ -833,7 +980,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
       card.append(title, badge, hint);
 
-      card.addEventListener("click", () => openSettings(member));
+      card.addEventListener("click", function () {
+        openSettings(member);
+      });
 
       card.addEventListener("keydown", function (event) {
         if (event.key === "Enter" || event.key === " ") {
@@ -848,118 +997,132 @@ document.addEventListener("DOMContentLoaded", function () {
     memberList.replaceChildren(fragment);
   }
 
-
   // ==========================================
-  // 7. MEMBER SETTINGS STYLES
+  // MEMBER SETTINGS STYLES
   // ==========================================
 
   const settingsStyles = document.createElement("style");
 
   settingsStyles.textContent = `
     .member-card[role="button"] {
-      cursor:pointer;
-      transition:transform .2s ease,border-color .2s ease;
-      border:1px solid transparent;
+      cursor: pointer;
+      transition: transform .2s ease, border-color .2s ease;
+      border: 1px solid transparent;
     }
+
     .member-card[role="button"]:hover {
-      transform:translateY(-3px);
-      border-color:var(--member-color);
+      transform: translateY(-3px);
+      border-color: var(--member-color);
     }
+
     .member-card[role="button"]:focus-visible {
-      outline:2px solid var(--member-color);
-      outline-offset:3px;
+      outline: 2px solid var(--member-color);
+      outline-offset: 3px;
     }
+
     .member-card-edit-hint {
-      font-size:11px;
-      color:#aaa5ba;
-      margin-top:10px;
+      font-size: 11px;
+      color: #aaa5ba;
+      margin-top: 10px;
     }
+
     .edit-member-form {
-      display:grid;
-      gap:10px;
+      display: grid;
+      gap: 10px;
     }
+
     .edit-member-form label {
-      font-size:13px;
-      font-weight:bold;
-      color:#e8e3ee;
-      margin-top:4px;
+      font-size: 13px;
+      font-weight: bold;
+      color: #e8e3ee;
+      margin-top: 4px;
     }
+
     .edit-member-form input[type="text"],
     .edit-member-form input[type="file"] {
-      width:100%;
-      min-width:0;
-      background:#292938;
-      border:1px solid #454555;
-      border-radius:8px;
-      padding:11px;
-      color:#fff;
-      font:inherit;
+      width: 100%;
+      min-width: 0;
+      background: #292938;
+      border: 1px solid #454555;
+      border-radius: 8px;
+      padding: 11px;
+      color: #fff;
+      font: inherit;
     }
+
     .edit-member-form input[type="color"] {
-      width:60px;
-      height:40px;
-      cursor:pointer;
-      border:1px solid #454555;
-      border-radius:7px;
-      background:transparent;
+      width: 60px;
+      height: 40px;
+      cursor: pointer;
+      border: 1px solid #454555;
+      border-radius: 7px;
+      background: transparent;
     }
+
     .edit-member-form .edit-shortcut {
-      text-align:center;
-      cursor:pointer;
-      font-weight:bold;
+      text-align: center;
+      cursor: pointer;
+      font-weight: bold;
     }
+
     .edit-member-form .photo-preview {
-      width:64px;
-      height:64px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      overflow:hidden;
-      border:2px solid var(--member-color);
-      border-radius:10px;
-      color:var(--member-color);
-      font-size:25px;
-      font-weight:bold;
+      width: 64px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border: 2px solid var(--member-color);
+      border-radius: 10px;
+      color: var(--member-color);
+      font-size: 25px;
+      font-weight: bold;
     }
+
     .edit-member-form .photo-preview img {
-      width:100%;
-      height:100%;
-      object-fit:cover;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
+
     .edit-member-form .small-hint {
-      font-size:12px;
-      color:#aaa5ba;
-      margin:0;
+      font-size: 12px;
+      color: #aaa5ba;
+      margin: 0;
     }
+
     .edit-member-form .edit-actions {
-      display:flex;
-      gap:9px;
-      flex-wrap:wrap;
-      margin-top:12px;
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+      margin-top: 12px;
     }
+
     .edit-member-form .delete-member-button {
-      background:#59313d;
-      color:#ffe4ea;
+      background: #59313d;
+      color: #ffe4ea;
     }
+
     .edit-member-form .cancel-member-button {
-      background:#383443;
-      color:#fff;
+      background: #383443;
+      color: #fff;
     }
+
     .edit-member-form .edit-error {
-      font-size:13px;
-      color:#ff9b9b;
-      margin:0;
+      font-size: 13px;
+      color: #ff9b9b;
+      margin: 0;
     }
+
     #edit-member-title {
-      color:var(--accent);
+      color: var(--accent);
     }
   `;
 
   document.head.appendChild(settingsStyles);
 
-
   // ==========================================
-  // 8. MEMBER SETTINGS MODAL
+  // MEMBER SETTINGS MODAL
   // ==========================================
 
   const settingsModal = document.createElement("div");
@@ -968,11 +1131,15 @@ document.addEventListener("DOMContentLoaded", function () {
   settingsModal.id = "member-settings-modal";
 
   settingsModal.innerHTML = `
-    <div class="modal-content" role="dialog"
-         aria-modal="true" aria-labelledby="edit-member-title">
+    <div class="modal-content"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="edit-member-title">
 
-      <button type="button" class="close-modal"
-              id="close-edit-member" aria-label="Close">×</button>
+      <button type="button"
+              class="close-modal"
+              id="close-edit-member"
+              aria-label="Close">×</button>
 
       <h2 id="edit-member-title">Edit Member</h2>
 
@@ -981,7 +1148,10 @@ document.addEventListener("DOMContentLoaded", function () {
         <div id="edit-photo-preview" class="photo-preview"></div>
 
         <label for="edit-member-name">Member Name</label>
-        <input id="edit-member-name" type="text" maxlength="30" required>
+        <input id="edit-member-name"
+               type="text"
+               maxlength="30"
+               required>
 
         <label for="edit-member-color">Member Color</label>
         <input id="edit-member-color" type="color">
@@ -989,7 +1159,9 @@ document.addEventListener("DOMContentLoaded", function () {
         <label for="edit-member-image">Change Photo</label>
         <input id="edit-member-image" type="file" accept="image/*">
 
-        <p class="small-hint">Leave empty to keep the current photo.</p>
+        <p class="small-hint">
+          Leave empty to keep the current photo.
+        </p>
 
         <label style="display:flex;align-items:center;gap:9px;font-weight:normal">
           <input type="checkbox" id="edit-remove-photo">
@@ -997,19 +1169,35 @@ document.addEventListener("DOMContentLoaded", function () {
         </label>
 
         <label for="edit-member-shortcut">Keyboard Shortcut</label>
-        <input id="edit-member-shortcut" class="edit-shortcut"
-               type="text" readonly required
+
+        <input id="edit-member-shortcut"
+               class="edit-shortcut"
+               type="text"
+               readonly
+               required
                placeholder="Click and press a key">
 
-        <p class="edit-error" id="edit-member-error"
-           role="alert" hidden></p>
+        <p class="edit-error"
+           id="edit-member-error"
+           role="alert"
+           hidden></p>
 
         <div class="edit-actions">
-          <button type="submit">Save Changes</button>
-          <button type="button" id="delete-member"
-                  class="delete-member-button">Remove Member</button>
-          <button type="button" id="cancel-edit-member"
-                  class="cancel-member-button">Cancel</button>
+          <button type="submit">
+            Save Changes
+          </button>
+
+          <button type="button"
+                  id="delete-member"
+                  class="delete-member-button">
+            Remove Member
+          </button>
+
+          <button type="button"
+                  id="cancel-edit-member"
+                  class="cancel-member-button">
+            Cancel
+          </button>
         </div>
 
       </form>
@@ -1057,8 +1245,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (member.photoURL) {
       const image = document.createElement("img");
+
       image.src = member.photoURL;
       image.alt = member.name;
+
       editPhotoPreview.appendChild(image);
     } else {
       editPhotoPreview.textContent =
@@ -1131,9 +1321,8 @@ document.addEventListener("DOMContentLoaded", function () {
     clearEditError();
   });
 
-
   // ==========================================
-  // 9. SAVE OR DELETE MEMBER
+  // SAVE MEMBER CHANGES
   // ==========================================
 
   editForm.addEventListener("submit", function (event) {
@@ -1181,9 +1370,11 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     closeSettings();
+
     renderMemberCards();
     renderClassicMembers();
     renderVisualMembers();
+
     updateAllResults();
     updateWinnerCrown();
 
@@ -1218,9 +1409,11 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     closeSettings();
+
     renderMemberCards();
     renderClassicMembers();
     renderVisualMembers();
+
     updateAllResults();
     updateWinnerCrown();
 
@@ -1229,9 +1422,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-
   // ==========================================
-  // 10. CREATE MEMBER
+  // CREATE NEW MEMBER
   // ==========================================
 
   memberForm.addEventListener("submit", function (event) {
@@ -1280,6 +1472,7 @@ document.addEventListener("DOMContentLoaded", function () {
     renderMemberCards();
     renderClassicMembers();
     renderVisualMembers();
+
     updateAllResults();
     updateWinnerCrown();
 
@@ -1296,9 +1489,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-
   // ==========================================
-  // 11. MUSIC PLAYER
+  // MUSIC PLAYER
   // ==========================================
 
   function showMusicError(message) {
@@ -1322,7 +1514,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const remaining = String(all % 60).padStart(2, "0");
 
     return hours > 0
-      ? hours + ":" + String(minutes).padStart(2, "0") + ":" + remaining
+      ? hours + ":" +
+        String(minutes).padStart(2, "0") + ":" +
+        remaining
       : minutes + ":" + remaining;
   }
 
@@ -1341,7 +1535,10 @@ document.addEventListener("DOMContentLoaded", function () {
     if (Number.isFinite(duration) && duration > 0) {
       musicSeek.value = Math.max(
         0,
-        Math.min(100, musicAudio.currentTime / duration * 100)
+        Math.min(
+          100,
+          musicAudio.currentTime / duration * 100
+        )
       );
 
       musicDuration.textContent = formatTime(duration);
@@ -1351,9 +1548,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-
   // ==========================================
-  // 12. RECORDING PANEL
+  // RECORDING PANEL
   // ==========================================
 
   const panel = document.createElement("section");
@@ -1366,9 +1562,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const heading = document.createElement("h2");
   heading.textContent = "RECORDING SYSTEM";
-  heading.style.cssText = "color:var(--accent);margin-top:0";
+  heading.style.cssText =
+    "color:var(--accent);margin-top:0";
 
   const buttonRow = document.createElement("div");
+
   buttonRow.style.cssText =
     "display:flex;justify-content:center;gap:12px;flex-wrap:wrap";
 
@@ -1392,21 +1590,18 @@ document.addEventListener("DOMContentLoaded", function () {
   document.querySelector(".music-player")
     .insertAdjacentElement("afterend", panel);
 
-
-  // ==========================================
-  // 13. RECORDING STATE
-  // ==========================================
-
   function updateButtons() {
     startButton.disabled =
-      !musicIsReady || recordingState !== "idle";
+      !musicIsReady ||
+      recordingState !== "idle";
 
     finishButton.disabled =
       recordingState !== "recording" &&
       recordingState !== "awaitingFinish";
 
     musicToggle.disabled =
-      !musicIsReady || recordingState === "awaitingFinish";
+      !musicIsReady ||
+      recordingState === "awaitingFinish";
 
     musicRestart.disabled = !musicIsReady;
 
@@ -1416,8 +1611,11 @@ document.addEventListener("DOMContentLoaded", function () {
       recordingState === "awaitingFinish";
 
     openButton.disabled = isMemberEditingLocked();
+
     if (visualDragHint) {
-      visualDragHint.hidden = members.length === 0 || isMemberEditingLocked();
+      visualDragHint.hidden =
+        members.length === 0 ||
+        isMemberEditingLocked();
     }
   }
 
@@ -1452,13 +1650,13 @@ document.addEventListener("DOMContentLoaded", function () {
     );
 
     status.textContent = active.length > 0
-      ? "Recording: " + active.map(member => member.name).join(", ")
+      ? "Recording: " +
+        active.map(member => member.name).join(", ")
       : "Recording... Press a member's assigned key.";
   }
 
-
   // ==========================================
-  // 14. CALCULATE RESULTS
+  // CALCULATE RESULTS
   // ==========================================
 
   function updateAllResults() {
@@ -1472,7 +1670,10 @@ document.addEventListener("DOMContentLoaded", function () {
             ? now
             : line.end;
 
-          return total + Math.max(0, end - line.start);
+          return total + Math.max(
+            0,
+            end - line.start
+          );
         },
         0
       );
@@ -1500,7 +1701,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function tick() {
     animationFrameId = null;
-
     updateAllResults();
 
     if (
@@ -1521,9 +1721,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-
   // ==========================================
-  // 15. MEMBER RECORDING KEYS
+  // MEMBER RECORDING KEYS
   // ==========================================
 
   function toggleMemberLine(member) {
@@ -1568,9 +1767,8 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-
   // ==========================================
-  // 16. START, FINISH AND RESET
+  // START / FINISH / RESET RECORDING
   // ==========================================
 
   async function startRecording() {
@@ -1656,9 +1854,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   musicRestart.addEventListener("click", restartAll);
 
-
   // ==========================================
-  // 17. LOAD MP3
+  // LOAD MP3
   // ==========================================
 
   musicFile.addEventListener("change", function () {
@@ -1719,13 +1916,15 @@ document.addEventListener("DOMContentLoaded", function () {
     updateStatus();
   });
 
-
   // ==========================================
-  // 18. MUSIC PLAYBACK
+  // MUSIC PLAYBACK
   // ==========================================
 
   musicToggle.addEventListener("click", async function () {
-    if (!musicIsReady || recordingState === "awaitingFinish") {
+    if (
+      !musicIsReady ||
+      recordingState === "awaitingFinish"
+    ) {
       return;
     }
 
@@ -1752,7 +1951,9 @@ document.addEventListener("DOMContentLoaded", function () {
       musicAudio.duration > 0
     ) {
       musicAudio.currentTime =
-        Number(musicSeek.value) / 100 * musicAudio.duration;
+        Number(musicSeek.value) /
+        100 *
+        musicAudio.duration;
 
       updateMusicProgress();
     }
@@ -1824,9 +2025,8 @@ document.addEventListener("DOMContentLoaded", function () {
     );
   });
 
-
   // ==========================================
-  // 19. APPEARANCE SETTINGS — STORAGE
+  // APPEARANCE SETTINGS — STORAGE
   // ==========================================
 
   const APPEARANCE_KEY = "lds-appearance-v1";
@@ -1870,9 +2070,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-
-  // Store images in IndexedDB, not localStorage.
-
   function backgroundDatabase(action, file) {
     return new Promise(function (resolve, reject) {
       if (!window.indexedDB) {
@@ -1899,7 +2096,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
       open.onsuccess = function () {
         const db = open.result;
-
         let result = null;
 
         const transaction = db.transaction(
@@ -1954,11 +2150,6 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-
-  // ==========================================
-  // 20. APPEARANCE THEME DATA
-  // ==========================================
-
   let savedAppearance = loadAppearanceColors();
   let draftAppearance = { ...savedAppearance };
 
@@ -1972,7 +2163,10 @@ document.addEventListener("DOMContentLoaded", function () {
   function applyAppearance(values, imageURL) {
     const root = document.documentElement;
 
-    root.style.setProperty("--accent", values.accent);
+    root.style.setProperty(
+      "--accent",
+      values.accent
+    );
 
     root.style.setProperty(
       "--background",
@@ -1997,19 +2191,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
   applyAppearance(savedAppearance, savedBackgroundURL);
 
-
   // ==========================================
-  // 21. APPEARANCE CORNER BUTTON
+  // APPEARANCE BUTTON
   // ==========================================
 
   const appearanceToggle = document.createElement("button");
 
   appearanceToggle.type = "button";
   appearanceToggle.id = "appearance-toggle";
-
   appearanceToggle.textContent = "🎨 Appearance Settings";
 
-  appearanceToggle.setAttribute("aria-haspopup", "dialog");
+  appearanceToggle.setAttribute(
+    "aria-haspopup",
+    "dialog"
+  );
+
   appearanceToggle.setAttribute(
     "aria-controls",
     "appearance-overlay"
@@ -2017,9 +2213,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   document.body.appendChild(appearanceToggle);
 
-
   // ==========================================
-  // 22. APPEARANCE SETTINGS WINDOW
+  // APPEARANCE SETTINGS WINDOW
   // ==========================================
 
   const appearanceOverlay = document.createElement("div");
@@ -2034,13 +2229,18 @@ document.addEventListener("DOMContentLoaded", function () {
          aria-labelledby="appearance-title">
 
       <div class="appearance-panel-header">
-        <h2 class="appearance-panel-title" id="appearance-title">
+
+        <h2 class="appearance-panel-title"
+            id="appearance-title">
           🎨 Appearance Settings
         </h2>
 
         <button type="button"
                 id="appearance-close"
-                aria-label="Close appearance settings">×</button>
+                aria-label="Close appearance settings">
+          ×
+        </button>
+
       </div>
 
       <p class="appearance-description">
@@ -2051,7 +2251,9 @@ document.addEventListener("DOMContentLoaded", function () {
       <form id="appearance-form">
 
         <div class="appearance-setting">
-          <label class="appearance-label" for="appearance-accent">
+
+          <label class="appearance-label"
+                 for="appearance-accent">
             Theme Accent Color
           </label>
 
@@ -2061,6 +2263,7 @@ document.addEventListener("DOMContentLoaded", function () {
           </p>
 
           <div class="appearance-color-row">
+
             <input class="appearance-color-input"
                    id="appearance-accent"
                    type="color"
@@ -2073,10 +2276,12 @@ document.addEventListener("DOMContentLoaded", function () {
                    spellcheck="false"
                    aria-label="Accent color hex code"
                    value="#FF80C8">
+
           </div>
         </div>
 
         <div class="appearance-setting">
+
           <label class="appearance-label"
                  for="appearance-background">
             Page Background Color
@@ -2087,6 +2292,7 @@ document.addEventListener("DOMContentLoaded", function () {
           </p>
 
           <div class="appearance-color-row">
+
             <input class="appearance-color-input"
                    id="appearance-background"
                    type="color"
@@ -2099,11 +2305,14 @@ document.addEventListener("DOMContentLoaded", function () {
                    spellcheck="false"
                    aria-label="Page background hex code"
                    value="#101018">
+
           </div>
         </div>
 
         <div class="appearance-setting">
-          <label class="appearance-label" for="appearance-image">
+
+          <label class="appearance-label"
+                 for="appearance-image">
             Custom Background Image
           </label>
 
@@ -2127,10 +2336,13 @@ document.addEventListener("DOMContentLoaded", function () {
                   class="appearance-action appearance-action-secondary">
             Remove Background Image
           </button>
+
         </div>
 
         <div class="appearance-setting">
-          <label class="appearance-label" for="appearance-dim">
+
+          <label class="appearance-label"
+                 for="appearance-dim">
             Background Image Darkness
           </label>
 
@@ -2139,6 +2351,7 @@ document.addEventListener("DOMContentLoaded", function () {
           </p>
 
           <div class="appearance-dim-row">
+
             <input class="appearance-range"
                    id="appearance-dim"
                    type="range"
@@ -2149,11 +2362,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
             <output class="appearance-dim-value"
                     id="appearance-dim-value"
-                    for="appearance-dim">25%</output>
+                    for="appearance-dim">
+              25%
+            </output>
+
           </div>
         </div>
 
         <div class="appearance-actions">
+
           <button type="submit"
                   class="appearance-action appearance-action-primary"
                   id="appearance-save">
@@ -2171,6 +2388,7 @@ document.addEventListener("DOMContentLoaded", function () {
                   id="appearance-cancel">
             Cancel
           </button>
+
         </div>
 
         <p id="appearance-notice"
@@ -2186,9 +2404,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   document.body.appendChild(appearanceOverlay);
 
-
   // ==========================================
-  // 23. APPEARANCE FORM ELEMENTS
+  // APPEARANCE INPUTS
   // ==========================================
 
   const appearanceForm = $("appearance-form");
@@ -2203,14 +2420,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const appearanceNotice = $("appearance-notice");
   const appearanceSave = $("appearance-save");
 
-
-  // ==========================================
-  // 24. LIVE APPEARANCE PREVIEW
-  // ==========================================
-
   function currentDraftImage() {
     if (removeBackgroundImage) return null;
-
     return draftBackgroundURL || savedBackgroundURL;
   }
 
@@ -2247,9 +2458,8 @@ document.addEventListener("DOMContentLoaded", function () {
     imagePicker.value = "";
   }
 
-
   // ==========================================
-  // 25. OPEN / CLOSE APPEARANCE SETTINGS
+  // OPEN / CLOSE APPEARANCE
   // ==========================================
 
   function openAppearance() {
@@ -2320,16 +2530,14 @@ document.addEventListener("DOMContentLoaded", function () {
     appearanceToggle.focus();
   }
 
-
   // ==========================================
-  // 26. FULL COLOR PICKERS + HEX
+  // COLOR PICKERS
   // ==========================================
 
   function connectColorPicker(picker, hex, property) {
     picker.addEventListener("input", function () {
       draftAppearance[property] = picker.value;
       hex.value = picker.value.toUpperCase();
-
       previewAppearance();
     });
 
@@ -2338,9 +2546,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (!validHex(color)) return;
 
-      draftAppearance[property] =
-        color.toLowerCase();
-
+      draftAppearance[property] = color.toLowerCase();
       picker.value = color;
 
       previewAppearance();
@@ -2364,19 +2570,17 @@ document.addEventListener("DOMContentLoaded", function () {
     "background"
   );
 
-
-  // ==========================================
-  // 27. BACKGROUND IMAGE AND DARKNESS
-  // ==========================================
-
   dimSlider.addEventListener("input", function () {
     draftAppearance.dim = Number(dimSlider.value);
     previewAppearance();
   });
 
+  // ==========================================
+  // BACKGROUND IMAGE
+  // ==========================================
+
   imagePicker.addEventListener("change", function () {
     const file = imagePicker.files[0];
-
     if (!file) return;
 
     const accepted = [
@@ -2428,9 +2632,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   );
 
-
   // ==========================================
-  // 28. RESET TO DEFAULT
+  // RESET APPEARANCE
   // ==========================================
 
   $("appearance-reset").addEventListener("click", function () {
@@ -2438,7 +2641,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     draftAppearance = { ...DEFAULT_APPEARANCE };
     removeBackgroundImage = true;
-
     imageRevision++;
 
     accentPicker.value = draftAppearance.accent;
@@ -2459,9 +2661,8 @@ document.addEventListener("DOMContentLoaded", function () {
       "Defaults selected. Click Save Changes to confirm.";
   });
 
-
   // ==========================================
-  // 29. SAVE APPEARANCE SETTINGS
+  // SAVE APPEARANCE
   // ==========================================
 
   appearanceForm.addEventListener(
@@ -2472,7 +2673,6 @@ document.addEventListener("DOMContentLoaded", function () {
       if (appearanceSaving) return;
 
       const newImage = pendingImageFile;
-
       const deleteImage =
         removeBackgroundImage && !newImage;
 
@@ -2485,7 +2685,6 @@ document.addEventListener("DOMContentLoaded", function () {
       try {
         if (newImage) {
           await backgroundDatabase("write", newImage);
-
         } else if (deleteImage) {
           try {
             await backgroundDatabase("delete");
@@ -2555,9 +2754,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   );
 
-
   // ==========================================
-  // 30. APPEARANCE BUTTON EVENTS
+  // APPEARANCE BUTTON EVENTS
   // ==========================================
 
   appearanceToggle.addEventListener(
@@ -2597,9 +2795,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-
   // ==========================================
-  // 31. RESTORE SAVED BACKGROUND IMAGE
+  // RESTORE BACKGROUND IMAGE
   // ==========================================
 
   const initialImageRevision = imageRevision;
@@ -2622,15 +2819,12 @@ document.addEventListener("DOMContentLoaded", function () {
     } else {
       refreshAppearanceImagePreview();
     }
-
   }).catch(function () {
-    // Color settings still work if image storage
-    // is unavailable in this browser.
+    // Colors still work if browser image storage is blocked.
   });
 
-
   // ==========================================
-  // 32. KEYBOARD SHORTCUTS
+  // KEYBOARD CONTROLS
   // ==========================================
 
   document.addEventListener("keydown", function (event) {
@@ -2655,9 +2849,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (
       event.target instanceof Element &&
       (
-        event.target.closest(
-          "input, textarea, select"
-        ) ||
+        event.target.closest("input, textarea, select") ||
         event.target.isContentEditable
       )
     ) {
@@ -2686,13 +2878,11 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!member) return;
 
     event.preventDefault();
-
     toggleMemberLine(member);
   });
 
-
   // ==========================================
-  // 33. CLEANUP
+  // CLEANUP
   // ==========================================
 
   window.addEventListener("pagehide", function () {
@@ -2715,9 +2905,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-
   // ==========================================
-  // 34. INITIAL STATE
+  // INITIAL STATE
   // ==========================================
 
   renderVisualMembers();
