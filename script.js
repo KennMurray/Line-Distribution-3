@@ -4550,10 +4550,6 @@ document.addEventListener('DOMContentLoaded', () => {
   setButtons();
   setStatus();
 
-});
-
-// INITIAL STATE
-
   // ==========================================
   // TRANSPARENT WEBM EXPORT (VP9 + ALPHA)
   // ==========================================
@@ -5895,7 +5891,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  exportBegin.addEventListener(
+   exportBegin.addEventListener(
     'click',
     exportAlphaWebM
   );
+
+});
