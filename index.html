@@ -1,7 +1,6 @@
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,9 +8,7 @@
   <link rel="stylesheet" href="style.css">
 
   <style>
-    /* ==========================================
-       GLOBAL PAGE STYLES
-       ========================================== */
+    /* GLOBAL STYLES */
 
     body {
       background: var(--background, #101018);
@@ -39,9 +36,7 @@
       display: none !important;
     }
 
-    /* ==========================================
-       VIDEO PREVIEW
-       ========================================== */
+    /* VIDEO PREVIEW */
 
     .preview {
       width: 100%;
@@ -93,9 +88,7 @@
       font-size: clamp(11px, 1.4vw, 14px);
     }
 
-    /* ==========================================
-       VISUAL LINE DISTRIBUTION
-       ========================================== */
+    /* VISUAL LINE DISTRIBUTION */
 
     #visual-layout,
     #visual-stage {
@@ -139,9 +132,7 @@
       width: 100%;
     }
 
-    /* ==========================================
-       MODALS
-       ========================================== */
+    /* MODALS */
 
     .modal-overlay {
       display: none;
@@ -187,9 +178,7 @@
       padding: 4px 10px;
     }
 
-    /* ==========================================
-       MEMBER LIST
-       ========================================== */
+    /* MEMBER LIST */
 
     .member-list {
       max-width: 960px;
@@ -263,10 +252,7 @@
       margin-top: 12px;
     }
 
-    /* ==========================================
-       GROUP PRESETS — INITIAL STYLES
-       Full styling can later move to style.css.
-       ========================================== */
+    /* GROUP PRESETS */
 
     .member-toolbar {
       display: flex;
@@ -382,23 +368,279 @@
         padding: 20px 16px;
       }
     }
+
+    /* ==========================================
+       NEW THREE-COLUMN STUDIO WORKSPACE
+       ========================================== */
+
+    #studio-screen {
+      width: 100%;
+      max-width: none;
+      min-width: 0;
+    }
+
+    #studio-screen .studio-workspace {
+      width: min(100%, 1650px);
+      margin: 28px auto 0;
+
+      display: grid;
+
+      grid-template-columns:
+        minmax(200px, 245px)
+        minmax(0, 960px)
+        minmax(200px, 245px);
+
+      grid-template-rows: auto 1fr;
+
+      grid-template-areas:
+        "music center recording"
+        "music center extras";
+
+      justify-content: center;
+      align-items: start;
+      gap: 16px;
+      text-align: left;
+    }
+
+    /* LEFT SIDEBAR — MUSIC PLAYER */
+
+    #studio-screen .studio-workspace > .music-player {
+      grid-area: music;
+      width: 100% !important;
+      min-width: 0;
+      max-width: none !important;
+      margin: 0 !important;
+      padding: 18px !important;
+      border-radius: 16px;
+    }
+
+    #studio-screen .studio-workspace .music-player h2 {
+      font-size: 16px;
+      letter-spacing: .7px;
+      margin-bottom: 17px;
+    }
+
+    #studio-screen .studio-workspace .music-upload-area {
+      padding: 12px;
+      min-width: 0;
+    }
+
+    #studio-screen .studio-workspace
+    .music-upload-area input[type="file"] {
+      max-width: 100%;
+      min-width: 0;
+      padding: 6px;
+      font-size: 11px;
+    }
+
+    #studio-screen .studio-workspace #music-track-name {
+      font-size: 13px;
+      margin: 15px 0;
+    }
+
+    #studio-screen .studio-workspace .music-controls {
+      margin: 18px 0;
+      gap: 8px;
+    }
+
+    #studio-screen .studio-workspace .music-controls button {
+      min-width: 0;
+      width: 100%;
+      font-size: 13px;
+      padding: 10px;
+    }
+
+    #studio-screen .studio-workspace .music-volume-control {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding-top: 15px;
+    }
+
+    #studio-screen .studio-workspace
+    .music-volume-control input {
+      flex: 1;
+      min-width: 90px;
+      max-width: 100%;
+    }
+
+    /* CENTER — PREVIEW AND MEMBERS */
+
+    #studio-screen .studio-center {
+      grid-area: center;
+      width: 100%;
+      min-width: 0;
+      text-align: center;
+    }
+
+    #studio-screen .studio-center > .preview {
+      margin: 0 auto !important;
+      height: auto;
+    }
+
+    #studio-screen[data-visual-mode="visual"]
+    .studio-center > .preview {
+      width: 100%;
+      max-width: 960px;
+      aspect-ratio: 16 / 9;
+    }
+
+    #studio-screen[data-visual-mode="classic"]
+    .studio-center > .preview {
+      width: min(100%, 420px);
+      max-width: 420px;
+      aspect-ratio: 9 / 16;
+    }
+
+    #studio-screen .studio-center .member-toolbar {
+      margin: 18px auto;
+    }
+
+    #studio-screen .studio-center .member-list {
+      width: 100%;
+      max-width: 960px;
+      margin: 22px auto 0;
+    }
+
+    /* RIGHT SIDEBAR — RECORDING CONTROLS */
+
+    #studio-screen .studio-workspace > #recording-controls {
+      grid-area: recording;
+
+      width: 100% !important;
+      min-width: 0;
+      max-width: none !important;
+
+      margin: 0 !important;
+      padding: 18px !important;
+
+      border-radius: 16px !important;
+      text-align: left !important;
+    }
+
+    #studio-screen #recording-controls h2 {
+      font-size: 16px;
+      line-height: 1.3;
+      margin-bottom: 14px;
+    }
+
+    #studio-screen #recording-controls > div {
+      display: flex !important;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 9px !important;
+    }
+
+    #studio-screen #recording-controls button {
+      width: 100%;
+      min-width: 0;
+      padding: 10px;
+      border-radius: 9px;
+      font-size: 12px;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    #studio-screen #recording-status {
+      font-size: 12px;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+
+    /* RIGHT SIDEBAR — QUICK ACTIONS */
+
+    #studio-screen .studio-side-tools {
+      grid-area: extras;
+
+      width: 100%;
+      min-width: 0;
+      padding: 16px 18px;
+
+      background: #1c1c28;
+      border: 1px solid #393543;
+      border-radius: 16px;
+
+      text-align: left;
+    }
+
+    #studio-screen .studio-side-tools h2 {
+      color: var(--accent, #ff80c8);
+      font-size: 14px;
+      margin: 0 0 12px;
+      letter-spacing: .6px;
+    }
+
+    #studio-screen .studio-side-tools #music-restart {
+      width: 100%;
+      min-width: 0;
+      padding: 11px 8px;
+      font-size: 12px;
+      border-radius: 9px;
+      overflow-wrap: anywhere;
+    }
+
+    .studio-side-note {
+      margin: 12px 0 0;
+      font-size: 11px;
+      line-height: 1.5;
+      color: #aaa7b9;
+    }
+
+    /* RESPONSIVE LAYOUT — TABLETS */
+
+    @media (max-width: 1199px) {
+      #studio-screen .studio-workspace {
+        max-width: 960px;
+
+        grid-template-columns:
+          minmax(0, 1fr)
+          minmax(0, 1fr);
+
+        grid-template-rows: auto auto auto;
+
+        grid-template-areas:
+          "center center"
+          "music recording"
+          "music extras";
+      }
+    }
+
+    /* RESPONSIVE LAYOUT — PHONES */
+
+    @media (max-width: 650px) {
+      #studio-screen .studio-workspace {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto;
+
+        grid-template-areas:
+          "center"
+          "music"
+          "recording"
+          "extras";
+      }
+
+      #studio-screen .studio-center .member-list {
+        margin-top: 18px;
+      }
+    }
   </style>
 </head>
 
 <body>
 
-  <!-- ========================================
-       SCREEN 1 — WELCOME
-       ======================================== -->
+  <!-- WELCOME SCREEN -->
 
   <main id="welcome-screen" class="welcome-screen">
 
     <header class="welcome-header">
       <h1>WELCOME TO LINE DISTRIBUTION STUDIO</h1>
-      <p>Hello! Please choose your preferred visual style.</p>
+      <p>
+        Hello! Please choose your preferred visual style.
+      </p>
     </header>
 
     <form id="mode-form">
+
       <fieldset class="mode-selection">
 
         <legend class="mode-selection-title">
@@ -406,8 +648,6 @@
         </legend>
 
         <div class="mode-options">
-
-          <!-- VISUAL OPTION -->
 
           <label class="mode-card" for="mode-visual">
 
@@ -419,12 +659,14 @@
                 value="visual"
                 required
               >
+
               <span class="mode-card-title">
                 Visual Line Distribution
               </span>
             </div>
 
             <div class="mode-preview">
+
               <img
                 id="visual-preview-image"
                 class="mode-preview-image"
@@ -439,6 +681,7 @@
                 <span class="mode-placeholder-icon">◇</span>
                 <span>Visual Preview Coming Soon</span>
               </div>
+
             </div>
 
             <p class="mode-description">
@@ -447,8 +690,6 @@
             </p>
 
           </label>
-
-          <!-- CLASSIC OPTION -->
 
           <label class="mode-card" for="mode-classic">
 
@@ -460,12 +701,14 @@
                 value="classic"
                 required
               >
+
               <span class="mode-card-title">
                 Classic Line Distribution
               </span>
             </div>
 
             <div class="mode-preview">
+
               <img
                 id="classic-preview-image"
                 class="mode-preview-image"
@@ -480,6 +723,7 @@
                 <span class="mode-placeholder-icon">☷</span>
                 <span>Classic Preview Coming Soon</span>
               </div>
+
             </div>
 
             <p class="mode-description">
@@ -490,6 +734,7 @@
           </label>
 
         </div>
+
       </fieldset>
 
       <div class="welcome-actions">
@@ -511,9 +756,7 @@
   </main>
 
 
-  <!-- ========================================
-       SCREEN 2 — GENERATOR
-       ======================================== -->
+  <!-- MAIN GENERATOR -->
 
   <div id="studio-screen" class="studio-screen" hidden>
 
@@ -522,256 +765,299 @@
       <p>Create your own K-pop line distribution!</p>
     </header>
 
-    <!-- ======================================
-         VIDEO PREVIEW
-         ====================================== -->
 
-    <div class="preview" id="distribution-preview">
+    <!-- THREE-COLUMN WORKSPACE -->
 
-      <!-- VISUAL -->
+    <div id="studio-workspace" class="studio-workspace">
 
-      <div
-        id="visual-layout"
-        class="distribution-layout visual-layout"
-        aria-label="Visual Line Distribution Preview"
+      <!-- LEFT: MUSIC PLAYER -->
+
+      <section
+        class="music-player"
+        aria-labelledby="music-player-title"
       >
 
-        <div id="visual-stage" class="visual-stage">
+        <h2 id="music-player-title">MUSIC PLAYER</h2>
 
-          <div
-            id="visual-members"
-            class="visual-members"
-          ></div>
+        <div class="music-upload-area">
 
-          <div
-            id="visual-empty-state"
-            class="distribution-placeholder"
+          <label for="music-file">Choose MP3 File</label>
+
+          <input
+            type="file"
+            id="music-file"
+            accept=".mp3,audio/mpeg"
           >
-            <h2>VISUAL LINE DISTRIBUTION</h2>
-            <p>
-              Add members to build your visual distribution.
-            </p>
-          </div>
-
-          <p id="visual-drag-hint" hidden>
-            Drag members to arrange them.
-          </p>
 
         </div>
+
+        <p id="music-track-name">
+          No MP3 selected
+        </p>
+
+        <div class="music-timeline">
+
+          <input
+            type="range"
+            id="music-seek"
+            min="0"
+            max="100"
+            step="0.1"
+            value="0"
+            aria-label="Song progress"
+            disabled
+          >
+
+          <div class="music-time-display">
+            <span id="music-current-time">0:00</span>
+            <span id="music-duration">0:00</span>
+          </div>
+
+        </div>
+
+        <div class="music-controls">
+          <button
+            type="button"
+            id="music-toggle"
+            disabled
+          >
+            ▶ Play
+          </button>
+        </div>
+
+        <div class="music-volume-control">
+
+          <label for="music-volume">Volume</label>
+
+          <input
+            type="range"
+            id="music-volume"
+            min="0"
+            max="1"
+            step="0.01"
+            value="1"
+          >
+
+        </div>
+
+        <p
+          id="music-error"
+          class="music-error"
+          role="alert"
+          hidden
+        ></p>
+
+        <audio
+          id="music-audio"
+          preload="metadata"
+        ></audio>
+
+      </section>
+
+
+      <!-- CENTER: PREVIEW AND MEMBERS -->
+
+      <div id="studio-center" class="studio-center">
+
+        <div class="preview" id="distribution-preview">
+
+          <!-- VISUAL LINE DISTRIBUTION -->
+
+          <div
+            id="visual-layout"
+            class="distribution-layout visual-layout"
+            aria-label="Visual Line Distribution Preview"
+          >
+
+            <div id="visual-stage" class="visual-stage">
+
+              <div
+                id="visual-members"
+                class="visual-members"
+              ></div>
+
+              <div
+                id="visual-empty-state"
+                class="distribution-placeholder"
+              >
+                <h2>VISUAL LINE DISTRIBUTION</h2>
+                <p>
+                  Add members to build your visual distribution.
+                </p>
+              </div>
+
+              <p id="visual-drag-hint" hidden>
+                Drag members to arrange them.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <!-- VISUAL MEMBER TEMPLATE -->
+
+          <template id="visual-member-template">
+
+            <div class="visual-member">
+
+              <div class="visual-avatar">
+
+                <svg
+                  class="visual-progress-ring"
+                  viewBox="0 0 120 120"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <circle
+                    class="visual-ring-track"
+                    cx="60"
+                    cy="60"
+                    r="53"
+                  ></circle>
+
+                  <circle
+                    class="visual-ring-fill"
+                    cx="60"
+                    cy="60"
+                    r="53"
+                  ></circle>
+                </svg>
+
+                <img
+                  class="visual-photo"
+                  alt=""
+                  draggable="false"
+                >
+
+                <span
+                  class="visual-initial"
+                  hidden
+                ></span>
+
+                <span
+                  class="visual-crown"
+                  aria-hidden="true"
+                >♕</span>
+
+              </div>
+
+              <div class="visual-member-info">
+                <span class="visual-name"></span>
+                <span class="visual-seconds">0.0s</span>
+                <span class="visual-percentage">0%</span>
+              </div>
+
+            </div>
+
+          </template>
+
+
+          <!-- CLASSIC LINE DISTRIBUTION -->
+
+          <div
+            id="classic-layout"
+            class="distribution-layout classic-layout"
+            aria-label="Classic Line Distribution Preview"
+          >
+
+            <div
+              id="classic-members"
+              class="classic-members"
+            ></div>
+
+            <div
+              id="classic-empty-state"
+              class="distribution-placeholder"
+            >
+              <h2>CLASSIC LINE DISTRIBUTION</h2>
+
+              <p>
+                Add members to build your classic ranking.
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- MEMBER AND GROUP BUTTONS -->
+
+        <div
+          class="member-toolbar"
+          aria-label="Member and group tools"
+        >
+
+          <button
+            type="button"
+            id="open-member-modal"
+          >
+            + Add Member
+          </button>
+
+          <button
+            type="button"
+            id="open-groups-modal"
+          >
+            ♧ My Groups
+          </button>
+
+        </div>
+
+
+        <!-- MEMBER LIST -->
+
+        <section class="member-list">
+
+          <h2>Members</h2>
+
+          <div id="member-list-items"></div>
+
+        </section>
+
       </div>
 
-      <!-- VISUAL MEMBER TEMPLATE -->
 
-      <template id="visual-member-template">
+      <!-- RIGHT: RECORDING PANEL -->
+      <!-- script.js automatically inserts #recording-controls
+           after .music-player. The CSS grid moves it right. -->
 
-        <div class="visual-member">
 
-          <div class="visual-avatar">
+      <!-- RIGHT: QUICK ACTIONS -->
 
-            <svg
-              class="visual-progress-ring"
-              viewBox="0 0 120 120"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <circle
-                class="visual-ring-track"
-                cx="60"
-                cy="60"
-                r="53"
-              ></circle>
-
-              <circle
-                class="visual-ring-fill"
-                cx="60"
-                cy="60"
-                r="53"
-              ></circle>
-            </svg>
-
-            <img
-              class="visual-photo"
-              alt=""
-              draggable="false"
-            >
-
-            <span
-              class="visual-initial"
-              hidden
-            ></span>
-
-            <span
-              class="visual-crown"
-              aria-hidden="true"
-            >♕</span>
-
-          </div>
-
-          <div class="visual-member-info">
-            <span class="visual-name"></span>
-            <span class="visual-seconds">0.0s</span>
-            <span class="visual-percentage">0%</span>
-          </div>
-
-        </div>
-
-      </template>
-
-      <!-- CLASSIC -->
-
-      <div
-        id="classic-layout"
-        class="distribution-layout classic-layout"
-        aria-label="Classic Line Distribution Preview"
+      <aside
+        id="studio-side-tools"
+        class="studio-side-tools"
+        aria-label="Additional recording tools"
       >
 
-        <div
-          id="classic-members"
-          class="classic-members"
-        ></div>
-
-        <div
-          id="classic-empty-state"
-          class="distribution-placeholder"
-        >
-          <h2>CLASSIC LINE DISTRIBUTION</h2>
-          <p>
-            Add members to build your classic ranking.
-          </p>
-        </div>
-
-      </div>
-
-    </div>
-
-
-    <!-- ======================================
-         MUSIC PLAYER
-         ====================================== -->
-
-    <section
-      class="music-player"
-      aria-labelledby="music-player-title"
-    >
-
-      <h2 id="music-player-title">MUSIC PLAYER</h2>
-
-      <div class="music-upload-area">
-        <label for="music-file">Choose MP3 File</label>
-        <input
-          type="file"
-          id="music-file"
-          accept=".mp3,audio/mpeg"
-        >
-      </div>
-
-      <p id="music-track-name">
-        No MP3 selected
-      </p>
-
-      <div class="music-timeline">
-
-        <input
-          type="range"
-          id="music-seek"
-          min="0"
-          max="100"
-          step="0.1"
-          value="0"
-          aria-label="Song progress"
-          disabled
-        >
-
-        <div class="music-time-display">
-          <span id="music-current-time">0:00</span>
-          <span id="music-duration">0:00</span>
-        </div>
-
-      </div>
-
-      <div class="music-controls">
+        <h2>QUICK ACTIONS</h2>
 
         <button
           type="button"
           id="music-restart"
           disabled
         >
-          ↺ Restart
+          ↺ Restart All (~)
         </button>
 
-        <button
-          type="button"
-          id="music-toggle"
-          disabled
-        >
-          ▶ Play
-        </button>
+        <p class="studio-side-note">
+          Reset clears recorded times but keeps your group,
+          photos, shortcuts and selected MP3.
+        </p>
 
-      </div>
+        <p class="studio-side-note">
+          Live Preview and Video Export controls will be added
+          in upcoming steps.
+        </p>
 
-      <div class="music-volume-control">
-        <label for="music-volume">Volume</label>
-        <input
-          type="range"
-          id="music-volume"
-          min="0"
-          max="1"
-          step="0.01"
-          value="1"
-        >
-      </div>
-
-      <p
-        id="music-error"
-        class="music-error"
-        role="alert"
-        hidden
-      ></p>
-
-      <audio
-        id="music-audio"
-        preload="metadata"
-      ></audio>
-
-    </section>
-
-
-    <!-- ======================================
-         MEMBER AND GROUP BUTTONS
-         ====================================== -->
-
-    <div class="member-toolbar" aria-label="Member and group tools">
-
-      <button
-        type="button"
-        id="open-member-modal"
-      >
-        + Add Member
-      </button>
-
-      <button
-        type="button"
-        id="open-groups-modal"
-      >
-        ♧ My Groups
-      </button>
+      </aside>
 
     </div>
 
 
-    <!-- ======================================
-         CURRENT MEMBERS
-         ====================================== -->
-
-    <section class="member-list">
-      <h2>Members</h2>
-      <div id="member-list-items"></div>
-    </section>
-
-
-    <!-- ======================================
-         ADD MEMBER MODAL
-         ====================================== -->
+    <!-- ADD MEMBER MODAL -->
 
     <div class="modal-overlay" id="member-modal">
 
@@ -791,10 +1077,7 @@
 
         <h2 id="modal-title">Add Member</h2>
 
-        <form
-          id="member-form"
-          class="member-setup"
-        >
+        <form id="member-form" class="member-setup">
 
           <label for="member-name">Member Name</label>
 
@@ -853,12 +1136,11 @@
         </form>
 
       </div>
+
     </div>
 
 
-    <!-- ======================================
-         MY GROUPS MODAL
-         ====================================== -->
+    <!-- MY GROUPS MODAL -->
 
     <div
       class="modal-overlay groups-modal"
@@ -886,8 +1168,6 @@
           Visual positions. Your groups will stay in this browser.
         </p>
 
-        <!-- SAVED GROUPS -->
-
         <section
           class="groups-section"
           aria-labelledby="groups-saved-title"
@@ -906,8 +1186,6 @@
 
           </div>
 
-          <!-- JavaScript will fill this list -->
-
           <div
             id="groups-list"
             class="groups-list"
@@ -923,7 +1201,8 @@
 
         </section>
 
-        <!-- SAVE CURRENT SETUP -->
+
+        <!-- SAVE CURRENT MEMBERS -->
 
         <section
           class="groups-section"
@@ -979,12 +1258,11 @@
         ></p>
 
       </div>
+
     </div>
 
 
-    <!-- ======================================
-         SAVED GROUP CARD TEMPLATE
-         ====================================== -->
+    <!-- GROUP CARD TEMPLATE -->
 
     <template id="group-card-template">
 
@@ -1030,9 +1308,7 @@
     </template>
 
 
-    <!-- ======================================
-         CREATE / EDIT GROUP
-         ====================================== -->
+    <!-- CREATE / EDIT GROUP -->
 
     <div
       class="modal-overlay groups-modal"
@@ -1060,8 +1336,6 @@
           in your current project.
         </p>
 
-        <!-- GROUP NAME AND STORED MEMBERS -->
-
         <form id="group-editor-form">
 
           <label for="group-editor-name">
@@ -1078,8 +1352,6 @@
 
           <h3>Group Members</h3>
 
-          <!-- JavaScript renders editable members here -->
-
           <div id="group-editor-members"></div>
 
           <p
@@ -1091,7 +1363,8 @@
 
         </form>
 
-        <!-- ADD OR EDIT GROUP MEMBER -->
+
+        <!-- GROUP MEMBER EDITOR -->
 
         <section
           class="groups-section"
@@ -1107,6 +1380,7 @@
             <div class="group-member-fields">
 
               <div>
+
                 <label for="group-member-name">
                   Member Name
                 </label>
@@ -1118,9 +1392,11 @@
                   placeholder="e.g. Bang Chan"
                   required
                 >
+
               </div>
 
               <div>
+
                 <label for="group-member-color">
                   Member Color
                 </label>
@@ -1130,9 +1406,11 @@
                   id="group-member-color"
                   value="#ff80c8"
                 >
+
               </div>
 
               <div>
+
                 <label for="group-member-image">
                   Member Photo
                 </label>
@@ -1142,9 +1420,11 @@
                   id="group-member-image"
                   accept="image/*"
                 >
+
               </div>
 
               <div>
+
                 <label for="group-member-shortcut">
                   Keyboard Shortcut
                 </label>
@@ -1157,6 +1437,7 @@
                   readonly
                   required
                 >
+
               </div>
 
             </div>
@@ -1225,12 +1506,11 @@
         </div>
 
       </div>
+
     </div>
 
 
-    <!-- ======================================
-         LOAD GROUP — REPLACE / ADD / CANCEL
-         ====================================== -->
+    <!-- LOAD GROUP: REPLACE / ADD / CANCEL -->
 
     <div
       class="modal-overlay groups-modal"
@@ -1303,14 +1583,10 @@
         ></p>
 
       </div>
+
     </div>
 
   </div>
-
-
-  <!-- ========================================
-       JAVASCRIPT
-       ======================================== -->
 
   <script src="script.js"></script>
 
