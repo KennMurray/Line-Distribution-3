@@ -736,3 +736,14 @@ body:has(#appearance-toggle) #studio-screen {
 @media (prefers-reduced-motion: reduce) {
   #appearance-toggle { transition: none; }
 }
+
+
+
+/* VIDEO CUSTOMIZATION — BACKGROUND VISIBILITY FIX */
+
+#studio-screen #visual-layout,
+#studio-screen #classic-layout {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
