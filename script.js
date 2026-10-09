@@ -26,6 +26,12 @@ document.addEventListener("DOMContentLoaded", function () {
   const classicMembers = $("classic-members");
   const classicLayout = $("classic-layout");
 
+  const visualLayout = $("visual-layout");
+  const visualStage = $("visual-stage");
+  const visualMembers = $("visual-members");
+  const visualTemplate = $("visual-member-template");
+  const visualDragHint = $("visual-drag-hint");
+
   const musicFile = $("music-file");
   const musicAudio = $("music-audio");
   const musicTrackName = $("music-track-name");
@@ -66,6 +72,8 @@ document.addEventListener("DOMContentLoaded", function () {
     welcomeScreen.hidden = true;
     studioScreen.hidden = false;
 
+    // Visual only has a measurable size once its screen is visible.
+    requestAnimationFrame(layoutVisualMembers);
     window.scrollTo(0, 0);
   });
 
@@ -378,12 +386,408 @@ document.addEventListener("DOMContentLoaded", function () {
           member === winner
         );
       }
+      if (member.visualUI) {
+        member.visualUI.node.classList.toggle(
+          "is-winner",
+          member === winner
+        );
+      }
     });
   }
 
 
+
   // ==========================================
-  // 6. CLICKABLE MEMBER CARDS
+  // 6. VISUAL LINE DISTRIBUTION — 16:9
+  // ==========================================
+
+  // All Visual CSS is injected here. No separate CSS edit is needed.
+  // The HTML template was added in the previous index.html update.
+
+  const visualStyles = document.createElement("style");
+  visualStyles.id = "visual-line-distribution-styles";
+  visualStyles.textContent = `
+    #studio-screen[data-visual-mode="visual"] .preview {
+      aspect-ratio: 16 / 9;
+      max-width: 960px;
+      background: #101018 !important;
+    }
+    #visual-layout {
+      position: relative;
+      padding: clamp(6px, 2vw, 22px);
+      overflow: hidden;
+    }
+    #visual-stage {
+      position: relative;
+      width: 100%; height: 100%;
+      min-width: 0; min-height: 0;
+    }
+    #visual-members {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+    }
+    #visual-empty-state {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      pointer-events: none;
+    }
+    #visual-stage:has(#visual-members:not(:empty)) #visual-empty-state {
+      display: none;
+    }
+    .visual-member {
+      position: absolute;
+      left: 50%; top: 50%;
+      width: var(--visual-card-width, 125px);
+      transform: translate(-50%, -50%);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-start;
+      gap: 2px;
+      padding: 0;
+      text-align: center;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      pointer-events: auto;
+      z-index: 1;
+    }
+    .visual-member.is-dragging {
+      z-index: 5;
+      cursor: grabbing;
+    }
+    .visual-avatar {
+      position: relative;
+      flex: none;
+      width: var(--visual-photo-size, 96px);
+      height: var(--visual-photo-size, 96px);
+      transition: transform .19s ease, filter .19s ease;
+    }
+    .visual-progress-ring {
+      position: absolute; inset: 0;
+      display: block;
+      width: 100%; height: 100%;
+      overflow: visible;
+      pointer-events: none;
+    }
+    .visual-ring-track, .visual-ring-fill {
+      fill: none;
+      stroke-width: 7;
+    }
+    .visual-ring-track { stroke: #393846; }
+    .visual-ring-fill {
+      stroke: var(--member-color, #ff80c8);
+      stroke-linecap: round;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+      transition: stroke-dashoffset .14s linear;
+    }
+    .visual-photo, .visual-initial {
+      position: absolute;
+      inset: 11%;
+      width: 78%; height: 78%;
+      border-radius: 50%;
+      border: 2px solid var(--member-color, #ff80c8);
+      background: #292938;
+      box-shadow: 0 0 9px color-mix(in srgb, var(--member-color) 55%, transparent);
+    }
+    .visual-photo {
+      object-fit: cover;
+      display: block;
+      pointer-events: none;
+      -webkit-user-drag: none;
+    }
+    .visual-initial {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--member-color, #ff80c8);
+      font-size: calc(var(--visual-photo-size, 96px) * .35);
+      font-weight: 800;
+    }
+    .visual-photo[hidden], .visual-initial[hidden] {
+      display: none !important;
+    }
+    .visual-crown {
+      position: absolute;
+      left: 50%; top: -27%;
+      transform: translateX(-50%);
+      font-size: calc(var(--visual-photo-size, 96px) * .36);
+      line-height: 1;
+      color: #fff;
+      visibility: hidden;
+      filter: drop-shadow(0 0 5px var(--member-color))
+              drop-shadow(0 0 8px var(--member-color));
+      pointer-events: none;
+    }
+    .visual-member.is-winner .visual-crown { visibility: visible; }
+    .visual-member-info {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 1px;
+      width: 100%; min-width: 0;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.14;
+    }
+    .visual-name {
+      width: 100%;
+      color: var(--member-color, #ff80c8);
+      font-weight: 800;
+      font-size: clamp(8px, calc(var(--visual-photo-size, 96px) * .14), 15px);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .visual-seconds {
+      color: white;
+      font-size: clamp(8px, calc(var(--visual-photo-size, 96px) * .125), 14px);
+      font-weight: 700;
+    }
+    .visual-percentage {
+      color: #cccbd7;
+      font-size: clamp(8px, calc(var(--visual-photo-size, 96px) * .115), 13px);
+    }
+    .visual-member.is-singing { z-index: 3; }
+    .visual-member.is-singing .visual-avatar {
+      transform: scale(1.12);
+      filter: drop-shadow(0 0 8px var(--member-color))
+              drop-shadow(0 0 12px var(--member-color));
+    }
+    .visual-member.is-dragging .visual-avatar { transform: none; }
+    #visual-drag-hint {
+      position: absolute;
+      bottom: 1%; left: 0; right: 0;
+      width: 100%; margin: 0;
+      font-size: clamp(8px, 1.15vw, 12px);
+      color: #9996ab;
+      pointer-events: none;
+    }
+    #visual-drag-hint[hidden] { display: none !important; }
+    @media (prefers-reduced-motion: reduce) {
+      .visual-avatar, .visual-ring-fill { transition: none; }
+    }
+  `;
+  document.head.appendChild(visualStyles);
+
+  const VISUAL_CIRCUMFERENCE = 2 * Math.PI * 53;
+
+  function visualColumnCount(count) {
+    if (count <= 3) return Math.max(1, count);
+    if (count <= 6) return 3;
+    if (count <= 12) return 4;
+    return 5;
+  }
+
+  function clampVisualPosition(member) {
+    if (!visualStage || !member.visualUI || !member.visualPosition) return;
+
+    const rect = visualStage.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+
+    const card = member.visualUI.node;
+    const horizontalPadding = Math.min(48, card.offsetWidth / rect.width * 50);
+    const verticalPadding = Math.min(48, card.offsetHeight / rect.height * 50);
+
+    member.visualPosition.x = Math.min(
+      100 - horizontalPadding,
+      Math.max(horizontalPadding, member.visualPosition.x)
+    );
+    member.visualPosition.y = Math.min(
+      100 - verticalPadding,
+      Math.max(verticalPadding, member.visualPosition.y)
+    );
+  }
+
+  function moveVisualMember(member) {
+    if (!member.visualUI || !member.visualPosition) return;
+
+    clampVisualPosition(member);
+    member.visualUI.node.style.left = member.visualPosition.x + "%";
+    member.visualUI.node.style.top = member.visualPosition.y + "%";
+  }
+
+  function layoutVisualMembers() {
+    if (!visualStage || !visualMembers || members.length === 0) return;
+
+    const rect = visualStage.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+
+    const columns = visualColumnCount(members.length);
+    const rows = Math.ceil(members.length / columns);
+    const cellWidth = rect.width / columns;
+    const cellHeight = rect.height / rows;
+
+    const photoSize = Math.max(
+      25,
+      Math.min(116, Math.floor(Math.min(cellWidth * .73, cellHeight * .64)))
+    );
+    const cardWidth = Math.max(
+      35,
+      Math.min(cellWidth * .94, photoSize * 1.47)
+    );
+
+    visualStage.style.setProperty("--visual-photo-size", photoSize + "px");
+    visualStage.style.setProperty("--visual-card-width", cardWidth + "px");
+
+    members.forEach(function (member, index) {
+      const row = Math.floor(index / columns);
+      const indexInRow = index % columns;
+      const countInRow = Math.min(
+        columns,
+        members.length - row * columns
+      );
+
+      if (!member.visualPosition || !member.visualPosition.custom) {
+        member.visualPosition = {
+          x: (indexInRow + 1) / (countInRow + 1) * 100,
+          y: (row + .5) / rows * 100,
+          custom: false
+        };
+      }
+
+      moveVisualMember(member);
+    });
+  }
+
+  function attachVisualDrag(member, node) {
+    let drag = null;
+
+    node.addEventListener("pointerdown", function (event) {
+      if (
+        isMemberEditingLocked() ||
+        (event.pointerType === "mouse" && event.button !== 0)
+      ) return;
+
+      const rect = visualStage.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+
+      event.preventDefault();
+
+      drag = {
+        pointerId: event.pointerId,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        x: member.visualPosition.x,
+        y: member.visualPosition.y
+      };
+
+      node.classList.add("is-dragging");
+      node.setPointerCapture(event.pointerId);
+    });
+
+    node.addEventListener("pointermove", function (event) {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+
+      const rect = visualStage.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+
+      member.visualPosition = {
+        x: drag.x + (event.clientX - drag.clientX) / rect.width * 100,
+        y: drag.y + (event.clientY - drag.clientY) / rect.height * 100,
+        custom: true
+      };
+      moveVisualMember(member);
+    });
+
+    function stopDrag(event) {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+
+      drag = null;
+      node.classList.remove("is-dragging");
+      if (node.hasPointerCapture(event.pointerId)) {
+        node.releasePointerCapture(event.pointerId);
+      }
+    }
+
+    node.addEventListener("pointerup", stopDrag);
+    node.addEventListener("pointercancel", stopDrag);
+    node.addEventListener("lostpointercapture", function () {
+      drag = null;
+      node.classList.remove("is-dragging");
+    });
+  }
+
+  function createVisualMember(member) {
+    const node = visualTemplate.content.firstElementChild.cloneNode(true);
+    node.style.setProperty("--member-color", member.color);
+    node.setAttribute("aria-label", "Move " + member.name);
+
+    const image = node.querySelector(".visual-photo");
+    const initial = node.querySelector(".visual-initial");
+    const ring = node.querySelector(".visual-ring-fill");
+    const name = node.querySelector(".visual-name");
+    const seconds = node.querySelector(".visual-seconds");
+    const percentage = node.querySelector(".visual-percentage");
+
+    if (member.photoURL) {
+      image.src = member.photoURL;
+      image.alt = member.name;
+      image.hidden = false;
+      initial.hidden = true;
+    } else {
+      image.removeAttribute("src");
+      image.hidden = true;
+      initial.hidden = false;
+      initial.textContent = member.name.charAt(0).toUpperCase();
+    }
+
+    name.textContent = member.name;
+    ring.style.strokeDasharray = String(VISUAL_CIRCUMFERENCE);
+    ring.style.strokeDashoffset = String(VISUAL_CIRCUMFERENCE);
+
+    member.visualUI = { node, ring, seconds, percentage };
+    attachVisualDrag(member, node);
+    return node;
+  }
+
+  function renderVisualMembers() {
+    if (!visualMembers || !visualTemplate) return;
+
+    const fragment = document.createDocumentFragment();
+    members.forEach(member => fragment.appendChild(createVisualMember(member)));
+    visualMembers.replaceChildren(fragment);
+
+    if (visualDragHint) {
+      visualDragHint.hidden = members.length === 0 || isMemberEditingLocked();
+    }
+
+    layoutVisualMembers();
+  }
+
+  function updateVisualValues() {
+    members.forEach(function (member) {
+      const ui = member.visualUI;
+      if (!ui) return;
+
+      ui.seconds.textContent = member.totalSeconds.toFixed(1) + "s";
+      ui.percentage.textContent = member.percentage === 0
+        ? "0%"
+        : member.percentage.toFixed(1) + "%";
+
+      const fraction = Math.max(0, Math.min(1, member.percentage / 100));
+      ui.ring.style.strokeDashoffset = String(
+        VISUAL_CIRCUMFERENCE * (1 - fraction)
+      );
+
+      const singing =
+        recordingState === "recording" &&
+        member.activeLine !== null &&
+        !musicAudio.paused;
+
+      ui.node.classList.toggle("is-singing", singing);
+    });
+  }
+
+  // Responsive stage; customized positions are stored as percentages.
+  if (visualStage && typeof ResizeObserver !== "undefined") {
+    const visualObserver = new ResizeObserver(layoutVisualMembers);
+    visualObserver.observe(visualStage);
+  } else {
+    window.addEventListener("resize", layoutVisualMembers);
+  }
+
+  // ==========================================
+  // 7. CLICKABLE MEMBER CARDS
   // ==========================================
 
   function isMemberEditingLocked() {
@@ -779,6 +1183,7 @@ document.addEventListener("DOMContentLoaded", function () {
     closeSettings();
     renderMemberCards();
     renderClassicMembers();
+    renderVisualMembers();
     updateAllResults();
     updateWinnerCrown();
 
@@ -815,6 +1220,7 @@ document.addEventListener("DOMContentLoaded", function () {
     closeSettings();
     renderMemberCards();
     renderClassicMembers();
+    renderVisualMembers();
     updateAllResults();
     updateWinnerCrown();
 
@@ -873,6 +1279,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     renderMemberCards();
     renderClassicMembers();
+    renderVisualMembers();
     updateAllResults();
     updateWinnerCrown();
 
@@ -1009,6 +1416,9 @@ document.addEventListener("DOMContentLoaded", function () {
       recordingState === "awaitingFinish";
 
     openButton.disabled = isMemberEditingLocked();
+    if (visualDragHint) {
+      visualDragHint.hidden = members.length === 0 || isMemberEditingLocked();
+    }
   }
 
   function updateStatus() {
@@ -1077,6 +1487,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     updateClassicValues();
+    updateVisualValues();
   }
 
   function stopTimer() {
@@ -2309,6 +2720,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // 34. INITIAL STATE
   // ==========================================
 
+  renderVisualMembers();
   updateMusicPlayButton();
   updateMusicProgress();
   updateButtons();
