@@ -1,6 +1,7 @@
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -38,7 +39,6 @@
       display: none !important;
     }
 
-
     /* ==========================================
        VIDEO PREVIEW
        ========================================== */
@@ -47,43 +47,33 @@
       width: 100%;
       max-width: 960px;
       aspect-ratio: 16 / 9;
-
       margin: 30px auto;
-
       background: #101018;
       border: 2px solid var(--accent, #ff80c8);
       border-radius: 12px;
-
       display: flex;
       align-items: center;
       justify-content: center;
-
       overflow: hidden;
     }
 
     .distribution-layout {
       display: none;
-
       width: 100%;
       height: 100%;
-
       min-width: 0;
       min-height: 0;
-
       padding: 24px;
-
       flex-direction: column;
       align-items: center;
       justify-content: center;
     }
 
-    #studio-screen[data-visual-mode="visual"]
-    #visual-layout {
+    #studio-screen[data-visual-mode="visual"] #visual-layout {
       display: flex;
     }
 
-    #studio-screen[data-visual-mode="classic"]
-    #classic-layout {
+    #studio-screen[data-visual-mode="classic"] #classic-layout {
       display: flex;
     }
 
@@ -103,21 +93,18 @@
       font-size: clamp(11px, 1.4vw, 14px);
     }
 
-
     /* ==========================================
-       VISUAL STAGE — NEW STRUCTURE
+       VISUAL LINE DISTRIBUTION
        ========================================== */
 
-    #visual-layout {
+    #visual-layout,
+    #visual-stage {
       position: relative;
     }
 
     #visual-stage {
-      position: relative;
-
       width: 100%;
       height: 100%;
-
       min-width: 0;
       min-height: 0;
     }
@@ -125,7 +112,6 @@
     #visual-members {
       position: absolute;
       inset: 0;
-
       width: 100%;
       height: 100%;
     }
@@ -133,13 +119,10 @@
     #visual-empty-state {
       position: absolute;
       inset: 0;
-
       display: flex;
       flex-direction: column;
-
       align-items: center;
       justify-content: center;
-
       pointer-events: none;
     }
 
@@ -156,22 +139,17 @@
       width: 100%;
     }
 
-
     /* ==========================================
-       ADD MEMBER POP-UP
+       MODALS
        ========================================== */
 
     .modal-overlay {
       display: none;
-
       position: fixed;
       inset: 0;
-
       background: rgba(0, 0, 0, 0.75);
-
       align-items: center;
       justify-content: center;
-
       z-index: 100;
       padding: 20px;
     }
@@ -182,21 +160,15 @@
 
     .modal-content {
       position: relative;
-
       width: 100%;
       max-width: 450px;
       max-height: 90vh;
-
       overflow-y: auto;
-
       background: #1c1c28;
-
       border: 1px solid var(--accent, #ff80c8);
       border-radius: 16px;
-
       padding: 28px;
       text-align: left;
-
       box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
     }
 
@@ -207,18 +179,13 @@
 
     .close-modal {
       position: absolute;
-
       top: 12px;
       right: 12px;
-
       background: transparent;
-
       color: white;
       font-size: 24px;
-
       padding: 4px 10px;
     }
-
 
     /* ==========================================
        MEMBER LIST
@@ -242,10 +209,8 @@
 
     .member-card {
       background: #1c1c28;
-
       border-radius: 12px;
       padding: 15px;
-
       text-align: center;
       min-width: 130px;
     }
@@ -253,12 +218,9 @@
     .member-card img {
       width: 80px;
       height: 80px;
-
       object-fit: cover;
       border-radius: 50%;
-
       border: 3px solid var(--member-color);
-
       box-shadow: 0 0 15px var(--member-color);
     }
 
@@ -267,27 +229,16 @@
       font-weight: bold;
     }
 
-
-    /* ==========================================
-       MEMBER KEYBOARD SHORTCUTS
-       ========================================== */
-
     .shortcut-input {
       width: 100%;
-
       padding: 12px;
-
       background: #292938;
-
       border: 1px solid #454555;
       border-radius: 8px;
-
       color: white;
       cursor: pointer;
-
       text-align: center;
       font-weight: bold;
-
       margin-top: 8px;
     }
 
@@ -298,13 +249,10 @@
 
     .member-shortcut {
       display: inline-block;
-
       padding: 5px 12px;
       border-radius: 6px;
-
       background: #292938;
       color: white;
-
       font-size: 13px;
       font-weight: bold;
     }
@@ -314,27 +262,143 @@
       font-size: 13px;
       margin-top: 12px;
     }
+
+    /* ==========================================
+       GROUP PRESETS — INITIAL STYLES
+       Full styling can later move to style.css.
+       ========================================== */
+
+    .member-toolbar {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 22px auto;
+    }
+
+    .groups-modal {
+      z-index: 1250;
+    }
+
+    .groups-panel {
+      width: 100%;
+      max-width: 740px;
+    }
+
+    .groups-panel h2,
+    .groups-panel h3 {
+      color: var(--accent, #ff80c8);
+    }
+
+    .groups-panel label {
+      display: block;
+      margin: 12px 0 7px;
+      font-weight: bold;
+    }
+
+    .groups-panel input[type="text"] {
+      width: 100%;
+      padding: 11px;
+      color: white;
+      background: #292938;
+      border: 1px solid #555064;
+      border-radius: 9px;
+      font: inherit;
+    }
+
+    .groups-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .groups-section {
+      padding: 16px;
+      margin: 15px 0;
+      border: 1px solid #484356;
+      background: #232330;
+      border-radius: 12px;
+    }
+
+    .groups-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .groups-empty {
+      padding: 18px;
+      color: #bbb4c8;
+      text-align: center;
+    }
+
+    .groups-hint {
+      color: #c3bdcb;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .groups-feedback {
+      color: #e9c6d8;
+      font-size: 13px;
+      min-height: 1em;
+    }
+
+    .groups-panel button.groups-secondary {
+      background: #373344;
+      color: white;
+      border: 1px solid #60586c;
+    }
+
+    .group-member-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .group-member-fields input[type="color"] {
+      width: 60px;
+      height: 40px;
+      cursor: pointer;
+    }
+
+    .group-member-fields input[type="file"] {
+      max-width: 100%;
+    }
+
+    #group-editor-members {
+      display: grid;
+      gap: 10px;
+      margin: 12px 0;
+    }
+
+    @media (max-width: 600px) {
+      .group-member-fields {
+        grid-template-columns: 1fr;
+      }
+
+      .groups-panel {
+        padding: 20px 16px;
+      }
+    }
   </style>
 </head>
 
 <body>
 
   <!-- ========================================
-       SCREEN 1 — WELCOME SCREEN
+       SCREEN 1 — WELCOME
        ======================================== -->
 
   <main id="welcome-screen" class="welcome-screen">
 
     <header class="welcome-header">
       <h1>WELCOME TO LINE DISTRIBUTION STUDIO</h1>
-
-      <p>
-        Hello! Please choose your preferred visual style.
-      </p>
+      <p>Hello! Please choose your preferred visual style.</p>
     </header>
 
     <form id="mode-form">
-
       <fieldset class="mode-selection">
 
         <legend class="mode-selection-title">
@@ -343,12 +407,11 @@
 
         <div class="mode-options">
 
-          <!-- VISUAL LINE DISTRIBUTION -->
+          <!-- VISUAL OPTION -->
 
           <label class="mode-card" for="mode-visual">
 
             <div class="mode-card-header">
-
               <input
                 type="radio"
                 id="mode-visual"
@@ -356,15 +419,12 @@
                 value="visual"
                 required
               >
-
               <span class="mode-card-title">
                 Visual Line Distribution
               </span>
-
             </div>
 
             <div class="mode-preview">
-
               <img
                 id="visual-preview-image"
                 class="mode-preview-image"
@@ -376,15 +436,8 @@
                 id="visual-preview-placeholder"
                 class="mode-preview-placeholder"
               >
-
-                <span class="mode-placeholder-icon">
-                  ◇
-                </span>
-
-                <span>
-                  Visual Preview Coming Soon
-                </span>
-
+                <span class="mode-placeholder-icon">◇</span>
+                <span>Visual Preview Coming Soon</span>
               </div>
             </div>
 
@@ -395,13 +448,11 @@
 
           </label>
 
-
-          <!-- CLASSIC LINE DISTRIBUTION -->
+          <!-- CLASSIC OPTION -->
 
           <label class="mode-card" for="mode-classic">
 
             <div class="mode-card-header">
-
               <input
                 type="radio"
                 id="mode-classic"
@@ -409,15 +460,12 @@
                 value="classic"
                 required
               >
-
               <span class="mode-card-title">
                 Classic Line Distribution
               </span>
-
             </div>
 
             <div class="mode-preview">
-
               <img
                 id="classic-preview-image"
                 class="mode-preview-image"
@@ -429,15 +477,8 @@
                 id="classic-preview-placeholder"
                 class="mode-preview-placeholder"
               >
-
-                <span class="mode-placeholder-icon">
-                  ☷
-                </span>
-
-                <span>
-                  Classic Preview Coming Soon
-                </span>
-
+                <span class="mode-placeholder-icon">☷</span>
+                <span>Classic Preview Coming Soon</span>
               </div>
             </div>
 
@@ -449,11 +490,9 @@
           </label>
 
         </div>
-
       </fieldset>
 
       <div class="welcome-actions">
-
         <button
           type="submit"
           id="start-creating"
@@ -461,7 +500,6 @@
         >
           Start Creating →
         </button>
-
       </div>
 
     </form>
@@ -474,38 +512,23 @@
 
 
   <!-- ========================================
-       SCREEN 2 — MAIN GENERATOR
+       SCREEN 2 — GENERATOR
        ======================================== -->
 
-  <div
-    id="studio-screen"
-    class="studio-screen"
-    hidden
-  >
+  <div id="studio-screen" class="studio-screen" hidden>
 
     <header class="studio-header">
-
       <h1>LINE DISTRIBUTION STUDIO</h1>
-
-      <p>
-        Create your own K-pop line distribution!
-      </p>
-
+      <p>Create your own K-pop line distribution!</p>
     </header>
-
 
     <!-- ======================================
          VIDEO PREVIEW
          ====================================== -->
 
-    <div
-      class="preview"
-      id="distribution-preview"
-    >
+    <div class="preview" id="distribution-preview">
 
-      <!-- ==================================
-           VISUAL LINE DISTRIBUTION — NEW
-           ================================== -->
+      <!-- VISUAL -->
 
       <div
         id="visual-layout"
@@ -513,64 +536,31 @@
         aria-label="Visual Line Distribution Preview"
       >
 
-        <!-- Area for freely positioned members -->
-
-        <div
-          id="visual-stage"
-          class="visual-stage"
-        >
-
-          <!-- JavaScript adds member photos here -->
+        <div id="visual-stage" class="visual-stage">
 
           <div
             id="visual-members"
             class="visual-members"
           ></div>
 
-
-          <!-- Shown when no members are added -->
-
           <div
             id="visual-empty-state"
             class="distribution-placeholder"
           >
-
             <h2>VISUAL LINE DISTRIBUTION</h2>
-
             <p>
               Add members to build your visual distribution.
             </p>
-
           </div>
-
-
-          <!-- Dragging instruction -->
 
           <p id="visual-drag-hint" hidden>
             Drag members to arrange them.
           </p>
 
         </div>
-
       </div>
 
-
-      <!-- ==================================
-           VISUAL MEMBER TEMPLATE — NEW
-           ================================== -->
-
-      <!--
-        JavaScript will copy this template
-        for every new member.
-
-        Each member will have:
-        - Circular photo
-        - Colored progress ring
-        - Name
-        - Seconds
-        - Percentage
-        - Winner crown
-      -->
+      <!-- VISUAL MEMBER TEMPLATE -->
 
       <template id="visual-member-template">
 
@@ -578,15 +568,12 @@
 
           <div class="visual-avatar">
 
-            <!-- Circular progress ring -->
-
             <svg
               class="visual-progress-ring"
               viewBox="0 0 120 120"
               aria-hidden="true"
               focusable="false"
             >
-
               <circle
                 class="visual-ring-track"
                 cx="60"
@@ -600,11 +587,7 @@
                 cy="60"
                 r="53"
               ></circle>
-
             </svg>
-
-
-            <!-- Member photo -->
 
             <img
               class="visual-photo"
@@ -612,51 +595,29 @@
               draggable="false"
             >
 
-
-            <!-- Initial if photo is missing -->
-
             <span
               class="visual-initial"
               hidden
             ></span>
 
-
-            <!-- Winner crown -->
-
             <span
               class="visual-crown"
               aria-hidden="true"
-            >
-              ♕
-            </span>
+            >♕</span>
 
           </div>
 
-
-          <!-- Member information -->
-
           <div class="visual-member-info">
-
             <span class="visual-name"></span>
-
-            <span class="visual-seconds">
-              0.0s
-            </span>
-
-            <span class="visual-percentage">
-              0%
-            </span>
-
+            <span class="visual-seconds">0.0s</span>
+            <span class="visual-percentage">0%</span>
           </div>
 
         </div>
 
       </template>
 
-
-      <!-- ==================================
-           CLASSIC LINE DISTRIBUTION
-           ================================== -->
+      <!-- CLASSIC -->
 
       <div
         id="classic-layout"
@@ -673,13 +634,10 @@
           id="classic-empty-state"
           class="distribution-placeholder"
         >
-
           <h2>CLASSIC LINE DISTRIBUTION</h2>
-
           <p>
             Add members to build your classic ranking.
           </p>
-
         </div>
 
       </div>
@@ -696,36 +654,20 @@
       aria-labelledby="music-player-title"
     >
 
-      <h2 id="music-player-title">
-        MUSIC PLAYER
-      </h2>
-
-
-      <!-- MP3 UPLOAD -->
+      <h2 id="music-player-title">MUSIC PLAYER</h2>
 
       <div class="music-upload-area">
-
-        <label for="music-file">
-          Choose MP3 File
-        </label>
-
+        <label for="music-file">Choose MP3 File</label>
         <input
           type="file"
           id="music-file"
           accept=".mp3,audio/mpeg"
         >
-
       </div>
-
-
-      <!-- SONG NAME -->
 
       <p id="music-track-name">
         No MP3 selected
       </p>
-
-
-      <!-- SONG TIMELINE -->
 
       <div class="music-timeline">
 
@@ -741,21 +683,11 @@
         >
 
         <div class="music-time-display">
-
-          <span id="music-current-time">
-            0:00
-          </span>
-
-          <span id="music-duration">
-            0:00
-          </span>
-
+          <span id="music-current-time">0:00</span>
+          <span id="music-duration">0:00</span>
         </div>
 
       </div>
-
-
-      <!-- PLAYER CONTROLS -->
 
       <div class="music-controls">
 
@@ -777,15 +709,8 @@
 
       </div>
 
-
-      <!-- VOLUME -->
-
       <div class="music-volume-control">
-
-        <label for="music-volume">
-          Volume
-        </label>
-
+        <label for="music-volume">Volume</label>
         <input
           type="range"
           id="music-volume"
@@ -794,11 +719,7 @@
           step="0.01"
           value="1"
         >
-
       </div>
-
-
-      <!-- ERROR MESSAGE -->
 
       <p
         id="music-error"
@@ -806,9 +727,6 @@
         role="alert"
         hidden
       ></p>
-
-
-      <!-- AUDIO -->
 
       <audio
         id="music-audio"
@@ -819,27 +737,35 @@
 
 
     <!-- ======================================
-         ADD MEMBER BUTTON
+         MEMBER AND GROUP BUTTONS
          ====================================== -->
 
-    <button
-      type="button"
-      id="open-member-modal"
-    >
-      + Add Member
-    </button>
+    <div class="member-toolbar" aria-label="Member and group tools">
+
+      <button
+        type="button"
+        id="open-member-modal"
+      >
+        + Add Member
+      </button>
+
+      <button
+        type="button"
+        id="open-groups-modal"
+      >
+        ♧ My Groups
+      </button>
+
+    </div>
 
 
     <!-- ======================================
-         MEMBER LIST
+         CURRENT MEMBERS
          ====================================== -->
 
     <section class="member-list">
-
       <h2>Members</h2>
-
       <div id="member-list-items"></div>
-
     </section>
 
 
@@ -847,10 +773,7 @@
          ADD MEMBER MODAL
          ====================================== -->
 
-    <div
-      class="modal-overlay"
-      id="member-modal"
-    >
+    <div class="modal-overlay" id="member-modal">
 
       <div
         class="modal-content"
@@ -864,24 +787,16 @@
           id="close-member-modal"
           type="button"
           aria-label="Close"
-        >
-          ×
-        </button>
+        >×</button>
 
-        <h2 id="modal-title">
-          Add Member
-        </h2>
+        <h2 id="modal-title">Add Member</h2>
 
         <form
           id="member-form"
           class="member-setup"
         >
 
-          <!-- MEMBER NAME -->
-
-          <label for="member-name">
-            Member Name
-          </label>
+          <label for="member-name">Member Name</label>
 
           <input
             type="text"
@@ -891,12 +806,7 @@
             required
           >
 
-
-          <!-- MEMBER PHOTO -->
-
-          <label for="member-image">
-            Member Photo
-          </label>
+          <label for="member-image">Member Photo</label>
 
           <input
             type="file"
@@ -904,21 +814,13 @@
             accept="image/*"
           >
 
-
-          <!-- MEMBER COLOR -->
-
-          <label for="member-color">
-            Member Color
-          </label>
+          <label for="member-color">Member Color</label>
 
           <input
             type="color"
             id="member-color"
             value="#ff80c8"
           >
-
-
-          <!-- MEMBER SHORTCUT -->
 
           <label for="member-shortcut">
             Keyboard Shortcut
@@ -933,33 +835,474 @@
             required
           >
 
-
-          <!-- ERROR MESSAGE -->
-
           <p
             id="shortcut-error"
             class="form-error"
             hidden
           ></p>
 
-
-          <!-- SAVE MEMBER -->
-
           <div style="margin-top:24px">
-
             <button
               type="submit"
               class="save-member"
             >
               Save Member
             </button>
-
           </div>
 
         </form>
 
       </div>
+    </div>
 
+
+    <!-- ======================================
+         MY GROUPS MODAL
+         ====================================== -->
+
+    <div
+      class="modal-overlay groups-modal"
+      id="groups-modal"
+    >
+
+      <div
+        class="modal-content groups-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="groups-title"
+      >
+
+        <button
+          type="button"
+          class="close-modal"
+          id="close-groups-modal"
+          aria-label="Close My Groups"
+        >×</button>
+
+        <h2 id="groups-title">My Groups</h2>
+
+        <p class="groups-hint">
+          Save your members, photos, colors, shortcuts and
+          Visual positions. Your groups will stay in this browser.
+        </p>
+
+        <!-- SAVED GROUPS -->
+
+        <section
+          class="groups-section"
+          aria-labelledby="groups-saved-title"
+        >
+
+          <h3 id="groups-saved-title">Saved Groups</h3>
+
+          <div class="groups-actions">
+
+            <button
+              type="button"
+              id="create-group-button"
+            >
+              + Create New Group
+            </button>
+
+          </div>
+
+          <!-- JavaScript will fill this list -->
+
+          <div
+            id="groups-list"
+            class="groups-list"
+          ></div>
+
+          <p
+            id="groups-empty"
+            class="groups-empty"
+          >
+            No saved groups yet. Create one or save
+            your current members.
+          </p>
+
+        </section>
+
+        <!-- SAVE CURRENT SETUP -->
+
+        <section
+          class="groups-section"
+          aria-labelledby="groups-current-title"
+        >
+
+          <h3 id="groups-current-title">
+            Save Current Members
+          </h3>
+
+          <p class="groups-hint">
+            Turn the members you've already added with
+            Add Member into a reusable preset.
+          </p>
+
+          <form id="save-current-group-form">
+
+            <label for="save-current-group-name">
+              Group Name
+            </label>
+
+            <input
+              type="text"
+              id="save-current-group-name"
+              maxlength="60"
+              placeholder="e.g. Stray Kids"
+              required
+            >
+
+            <div
+              class="groups-actions"
+              style="margin-top:12px"
+            >
+
+              <button
+                type="submit"
+                id="save-current-group"
+              >
+                Save Group
+              </button>
+
+            </div>
+
+          </form>
+
+        </section>
+
+        <p
+          id="groups-status"
+          class="groups-feedback"
+          role="status"
+          aria-live="polite"
+        ></p>
+
+      </div>
+    </div>
+
+
+    <!-- ======================================
+         SAVED GROUP CARD TEMPLATE
+         ====================================== -->
+
+    <template id="group-card-template">
+
+      <article class="group-card">
+
+        <div
+          class="group-card-photos"
+          aria-hidden="true"
+        ></div>
+
+        <div class="group-card-details">
+          <h4 class="group-card-name"></h4>
+          <p class="group-card-count"></p>
+        </div>
+
+        <div class="groups-actions group-card-actions">
+
+          <button
+            type="button"
+            class="group-card-load"
+          >
+            Load
+          </button>
+
+          <button
+            type="button"
+            class="group-card-edit groups-secondary"
+          >
+            Edit
+          </button>
+
+          <button
+            type="button"
+            class="group-card-delete groups-secondary"
+          >
+            Delete
+          </button>
+
+        </div>
+
+      </article>
+
+    </template>
+
+
+    <!-- ======================================
+         CREATE / EDIT GROUP
+         ====================================== -->
+
+    <div
+      class="modal-overlay groups-modal"
+      id="group-editor-modal"
+    >
+
+      <div
+        class="modal-content groups-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="group-editor-title"
+      >
+
+        <button
+          type="button"
+          class="close-modal"
+          id="close-group-editor"
+          aria-label="Close group editor"
+        >×</button>
+
+        <h2 id="group-editor-title">Create Group</h2>
+
+        <p class="groups-hint">
+          Build a group without changing the members
+          in your current project.
+        </p>
+
+        <!-- GROUP NAME AND STORED MEMBERS -->
+
+        <form id="group-editor-form">
+
+          <label for="group-editor-name">
+            Group Name
+          </label>
+
+          <input
+            type="text"
+            id="group-editor-name"
+            maxlength="60"
+            placeholder="e.g. Stray Kids"
+            required
+          >
+
+          <h3>Group Members</h3>
+
+          <!-- JavaScript renders editable members here -->
+
+          <div id="group-editor-members"></div>
+
+          <p
+            id="group-editor-empty"
+            class="groups-empty"
+          >
+            No members yet. Add someone below.
+          </p>
+
+        </form>
+
+        <!-- ADD OR EDIT GROUP MEMBER -->
+
+        <section
+          class="groups-section"
+          aria-labelledby="group-member-title"
+        >
+
+          <h3 id="group-member-title">
+            Add / Edit Member
+          </h3>
+
+          <form id="group-member-form">
+
+            <div class="group-member-fields">
+
+              <div>
+                <label for="group-member-name">
+                  Member Name
+                </label>
+
+                <input
+                  type="text"
+                  id="group-member-name"
+                  maxlength="30"
+                  placeholder="e.g. Bang Chan"
+                  required
+                >
+              </div>
+
+              <div>
+                <label for="group-member-color">
+                  Member Color
+                </label>
+
+                <input
+                  type="color"
+                  id="group-member-color"
+                  value="#ff80c8"
+                >
+              </div>
+
+              <div>
+                <label for="group-member-image">
+                  Member Photo
+                </label>
+
+                <input
+                  type="file"
+                  id="group-member-image"
+                  accept="image/*"
+                >
+              </div>
+
+              <div>
+                <label for="group-member-shortcut">
+                  Keyboard Shortcut
+                </label>
+
+                <input
+                  type="text"
+                  id="group-member-shortcut"
+                  maxlength="1"
+                  placeholder="Press A-Z or 0-9"
+                  readonly
+                  required
+                >
+              </div>
+
+            </div>
+
+            <p class="groups-hint">
+              When editing a member, leave the photo
+              empty to keep the existing one.
+            </p>
+
+            <label>
+              <input
+                type="checkbox"
+                id="group-member-remove-photo"
+              >
+              Remove current photo
+            </label>
+
+            <div class="groups-actions">
+
+              <button
+                type="submit"
+                id="group-member-submit"
+              >
+                Add Member
+              </button>
+
+              <button
+                type="button"
+                id="group-member-cancel"
+                class="groups-secondary"
+              >
+                Clear Fields
+              </button>
+
+            </div>
+
+          </form>
+
+        </section>
+
+        <p
+          id="group-editor-status"
+          class="groups-feedback"
+          role="status"
+          aria-live="polite"
+        ></p>
+
+        <div class="groups-actions">
+
+          <button
+            type="submit"
+            form="group-editor-form"
+            id="group-editor-save"
+          >
+            Save Group
+          </button>
+
+          <button
+            type="button"
+            id="group-editor-cancel"
+            class="groups-secondary"
+          >
+            Cancel
+          </button>
+
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ======================================
+         LOAD GROUP — REPLACE / ADD / CANCEL
+         ====================================== -->
+
+    <div
+      class="modal-overlay groups-modal"
+      id="group-load-modal"
+    >
+
+      <div
+        class="modal-content groups-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="group-load-title"
+      >
+
+        <button
+          type="button"
+          class="close-modal"
+          id="close-group-load"
+          aria-label="Close load options"
+        >×</button>
+
+        <h2 id="group-load-title">
+          Load Group
+        </h2>
+
+        <p class="groups-hint">
+          How would you like to load
+          <strong id="group-load-name"></strong>?
+        </p>
+
+        <div class="groups-actions">
+
+          <button
+            type="button"
+            id="group-load-replace"
+          >
+            Replace Current Members
+          </button>
+
+          <button
+            type="button"
+            id="group-load-add"
+          >
+            Add to Current Members
+          </button>
+
+          <button
+            type="button"
+            id="group-load-cancel"
+            class="groups-secondary"
+          >
+            Cancel
+          </button>
+
+        </div>
+
+        <p class="groups-hint">
+          Loading a group starts a new distribution setup.
+          Current recorded lines will be reset.
+          Adding keeps your existing members, while replacing
+          removes them from the current setup.
+          Conflicting shortcuts will be reassigned
+          where possible. Loading is blocked during recording.
+        </p>
+
+        <p
+          id="group-load-status"
+          class="groups-feedback"
+          role="status"
+          aria-live="polite"
+        ></p>
+
+      </div>
     </div>
 
   </div>
