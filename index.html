@@ -1,27 +1,19 @@
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Line Distribution Studio</title>
-
   <link rel="stylesheet" href="style.css">
 
   <style>
-
     /* ==========================================
        GLOBAL PAGE STYLES
        ========================================== */
 
     body {
-      background: #101018;
+      background: var(--background, #101018);
       color: white;
       font-family: Arial, sans-serif;
       text-align: center;
@@ -29,22 +21,17 @@
     }
 
     h1 {
-      color: #ff80c8;
+      color: var(--accent, #ff80c8);
     }
 
     button {
-      background: #ff80c8;
+      background: var(--accent, #ff80c8);
       border: none;
       border-radius: 8px;
       padding: 12px 24px;
       cursor: pointer;
       font-weight: bold;
     }
-
-
-    /* ==========================================
-       SCREEN VISIBILITY
-       ========================================== */
 
     #welcome-screen[hidden],
     #studio-screen[hidden] {
@@ -61,12 +48,11 @@
       max-width: 960px;
       aspect-ratio: 16 / 9;
 
-      background: #050509;
-
-      border: 2px solid #ff80c8;
-      border-radius: 12px;
-
       margin: 30px auto;
+
+      background: #101018;
+      border: 2px solid var(--accent, #ff80c8);
+      border-radius: 12px;
 
       display: flex;
       align-items: center;
@@ -74,11 +60,6 @@
 
       overflow: hidden;
     }
-
-
-    /* ==========================================
-       VISUAL / CLASSIC LAYOUT SWITCHING
-       ========================================== */
 
     .distribution-layout {
       display: none;
@@ -96,24 +77,15 @@
       justify-content: center;
     }
 
-    /* Show Visual layout when selected */
-
     #studio-screen[data-visual-mode="visual"]
     #visual-layout {
       display: flex;
     }
 
-    /* Show Classic layout when selected */
-
     #studio-screen[data-visual-mode="classic"]
     #classic-layout {
       display: flex;
     }
-
-
-    /* ==========================================
-       TEMPORARY PREVIEW PLACEHOLDERS
-       ========================================== */
 
     .distribution-placeholder {
       color: #a5a5b5;
@@ -121,8 +93,7 @@
     }
 
     .distribution-placeholder h2 {
-      color: #ff80c8;
-
+      color: var(--accent, #ff80c8);
       font-size: clamp(14px, 2vw, 22px);
       margin-bottom: 12px;
     }
@@ -134,10 +105,53 @@
 
 
     /* ==========================================
-       PREPARED MEMBER CONTAINERS
+       VISUAL STAGE — NEW STRUCTURE
        ========================================== */
 
-    #visual-members,
+    #visual-layout {
+      position: relative;
+    }
+
+    #visual-stage {
+      position: relative;
+
+      width: 100%;
+      height: 100%;
+
+      min-width: 0;
+      min-height: 0;
+    }
+
+    #visual-members {
+      position: absolute;
+      inset: 0;
+
+      width: 100%;
+      height: 100%;
+    }
+
+    #visual-empty-state {
+      position: absolute;
+      inset: 0;
+
+      display: flex;
+      flex-direction: column;
+
+      align-items: center;
+      justify-content: center;
+
+      pointer-events: none;
+    }
+
+    #visual-stage:has(#visual-members:not(:empty))
+    #visual-empty-state {
+      display: none;
+    }
+
+    #visual-drag-hint[hidden] {
+      display: none !important;
+    }
+
     #classic-members {
       width: 100%;
     }
@@ -149,6 +163,7 @@
 
     .modal-overlay {
       display: none;
+
       position: fixed;
       inset: 0;
 
@@ -176,18 +191,17 @@
 
       background: #1c1c28;
 
-      border: 1px solid #ff80c8;
+      border: 1px solid var(--accent, #ff80c8);
       border-radius: 16px;
 
       padding: 28px;
-
       text-align: left;
 
-      box-shadow: 0 0 30px #ff80c833;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
     }
 
     .modal-content h2 {
-      color: #ff80c8;
+      color: var(--accent, #ff80c8);
       margin-top: 0;
     }
 
@@ -217,7 +231,7 @@
     }
 
     .member-list h2 {
-      color: #ff80c8;
+      color: var(--accent, #ff80c8);
     }
 
     #member-list-items {
@@ -245,8 +259,7 @@
 
       border: 3px solid var(--member-color);
 
-      box-shadow:
-        0 0 15px var(--member-color);
+      box-shadow: 0 0 15px var(--member-color);
     }
 
     .member-card p {
@@ -270,7 +283,6 @@
       border-radius: 8px;
 
       color: white;
-
       cursor: pointer;
 
       text-align: center;
@@ -281,17 +293,13 @@
 
     .shortcut-input:focus {
       outline: none;
-
-      border-color: #ff80c8;
-
-      box-shadow: 0 0 10px #ff80c855;
+      border-color: var(--accent, #ff80c8);
     }
 
     .member-shortcut {
       display: inline-block;
 
       padding: 5px 12px;
-
       border-radius: 6px;
 
       background: #292938;
@@ -306,39 +314,24 @@
       font-size: 13px;
       margin-top: 12px;
     }
-
   </style>
-
 </head>
 
 <body>
-
 
   <!-- ========================================
        SCREEN 1 — WELCOME SCREEN
        ======================================== -->
 
-  <main
-    id="welcome-screen"
-    class="welcome-screen"
-  >
-
-    <!-- WELCOME HEADER -->
+  <main id="welcome-screen" class="welcome-screen">
 
     <header class="welcome-header">
-
-      <h1>
-        WELCOME TO LINE DISTRIBUTION STUDIO
-      </h1>
+      <h1>WELCOME TO LINE DISTRIBUTION STUDIO</h1>
 
       <p>
         Hello! Please choose your preferred visual style.
       </p>
-
     </header>
-
-
-    <!-- VISUAL STYLE SELECTION -->
 
     <form id="mode-form">
 
@@ -348,18 +341,11 @@
           Choose Your Style
         </legend>
 
-
         <div class="mode-options">
 
+          <!-- VISUAL LINE DISTRIBUTION -->
 
-          <!-- ============================
-               OPTION 1 — VISUAL
-               ============================ -->
-
-          <label
-            class="mode-card"
-            for="mode-visual"
-          >
+          <label class="mode-card" for="mode-visual">
 
             <div class="mode-card-header">
 
@@ -376,9 +362,6 @@
               </span>
 
             </div>
-
-
-            <!-- VISUAL PREVIEW IMAGE -->
 
             <div class="mode-preview">
 
@@ -403,27 +386,19 @@
                 </span>
 
               </div>
-
             </div>
 
-
             <p class="mode-description">
-              A modern visual layout with member
-              photos, colorful highlights and timers.
+              A modern visual layout with member photos,
+              colorful highlights and timers.
             </p>
 
           </label>
 
 
+          <!-- CLASSIC LINE DISTRIBUTION -->
 
-          <!-- ============================
-               OPTION 2 — CLASSIC
-               ============================ -->
-
-          <label
-            class="mode-card"
-            for="mode-classic"
-          >
+          <label class="mode-card" for="mode-classic">
 
             <div class="mode-card-header">
 
@@ -440,9 +415,6 @@
               </span>
 
             </div>
-
-
-            <!-- CLASSIC PREVIEW IMAGE -->
 
             <div class="mode-preview">
 
@@ -467,13 +439,11 @@
                 </span>
 
               </div>
-
             </div>
 
-
             <p class="mode-description">
-              A traditional ranking list with
-              member names, progress bars and timers.
+              A traditional ranking list with member names,
+              progress bars and timers.
             </p>
 
           </label>
@@ -481,9 +451,6 @@
         </div>
 
       </fieldset>
-
-
-      <!-- CONTINUE BUTTON -->
 
       <div class="welcome-actions">
 
@@ -499,19 +466,11 @@
 
     </form>
 
-
-    <!-- WELCOME FOOTER -->
-
     <footer class="welcome-footer">
-
-      <p>
-        Have fun! ♡
-      </p>
-
+      <p>Have fun! ♡</p>
     </footer>
 
   </main>
-
 
 
   <!-- ========================================
@@ -524,14 +483,9 @@
     hidden
   >
 
-
-    <!-- GENERATOR HEADER -->
-
     <header class="studio-header">
 
-      <h1>
-        LINE DISTRIBUTION STUDIO
-      </h1>
+      <h1>LINE DISTRIBUTION STUDIO</h1>
 
       <p>
         Create your own K-pop line distribution!
@@ -540,9 +494,8 @@
     </header>
 
 
-
     <!-- ======================================
-         VIDEO PREVIEW — 16:9
+         VIDEO PREVIEW
          ====================================== -->
 
     <div
@@ -550,9 +503,8 @@
       id="distribution-preview"
     >
 
-
       <!-- ==================================
-           VISUAL LINE DISTRIBUTION
+           VISUAL LINE DISTRIBUTION — NEW
            ================================== -->
 
       <div
@@ -561,42 +513,145 @@
         aria-label="Visual Line Distribution Preview"
       >
 
-        <!--
-          Future Visual layout:
-          - Circular member photos
-          - Circular percentage progress rings
-          - Member names
-          - Seconds and percentages
-          - Active singer highlight
-          - White crown with member-color glow
-            above the winner's ring
-        -->
+        <!-- Area for freely positioned members -->
 
         <div
-          id="visual-members"
-          class="visual-members"
-        ></div>
-
-
-        <!-- EMPTY VISUAL STATE -->
-
-        <div
-          id="visual-empty-state"
-          class="distribution-placeholder"
+          id="visual-stage"
+          class="visual-stage"
         >
 
-          <h2>
-            VISUAL LINE DISTRIBUTION
-          </h2>
+          <!-- JavaScript adds member photos here -->
 
-          <p>
-            Add members to build your visual distribution.
+          <div
+            id="visual-members"
+            class="visual-members"
+          ></div>
+
+
+          <!-- Shown when no members are added -->
+
+          <div
+            id="visual-empty-state"
+            class="distribution-placeholder"
+          >
+
+            <h2>VISUAL LINE DISTRIBUTION</h2>
+
+            <p>
+              Add members to build your visual distribution.
+            </p>
+
+          </div>
+
+
+          <!-- Dragging instruction -->
+
+          <p id="visual-drag-hint" hidden>
+            Drag members to arrange them.
           </p>
 
         </div>
 
       </div>
 
+
+      <!-- ==================================
+           VISUAL MEMBER TEMPLATE — NEW
+           ================================== -->
+
+      <!--
+        JavaScript will copy this template
+        for every new member.
+
+        Each member will have:
+        - Circular photo
+        - Colored progress ring
+        - Name
+        - Seconds
+        - Percentage
+        - Winner crown
+      -->
+
+      <template id="visual-member-template">
+
+        <div class="visual-member">
+
+          <div class="visual-avatar">
+
+            <!-- Circular progress ring -->
+
+            <svg
+              class="visual-progress-ring"
+              viewBox="0 0 120 120"
+              aria-hidden="true"
+              focusable="false"
+            >
+
+              <circle
+                class="visual-ring-track"
+                cx="60"
+                cy="60"
+                r="53"
+              ></circle>
+
+              <circle
+                class="visual-ring-fill"
+                cx="60"
+                cy="60"
+                r="53"
+              ></circle>
+
+            </svg>
+
+
+            <!-- Member photo -->
+
+            <img
+              class="visual-photo"
+              alt=""
+              draggable="false"
+            >
+
+
+            <!-- Initial if photo is missing -->
+
+            <span
+              class="visual-initial"
+              hidden
+            ></span>
+
+
+            <!-- Winner crown -->
+
+            <span
+              class="visual-crown"
+              aria-hidden="true"
+            >
+              ♕
+            </span>
+
+          </div>
+
+
+          <!-- Member information -->
+
+          <div class="visual-member-info">
+
+            <span class="visual-name"></span>
+
+            <span class="visual-seconds">
+              0.0s
+            </span>
+
+            <span class="visual-percentage">
+              0%
+            </span>
+
+          </div>
+
+        </div>
+
+      </template>
 
 
       <!-- ==================================
@@ -609,34 +664,17 @@
         aria-label="Classic Line Distribution Preview"
       >
 
-        <!--
-          Future Classic layout:
-          - Vertical member ranking list
-          - Member photos and names
-          - Seconds counters
-          - Percentage counters
-          - Horizontal progress bars
-          - Automatic ranking
-          - White crown with member-color glow
-            next to the winner's position
-        -->
-
         <div
           id="classic-members"
           class="classic-members"
         ></div>
-
-
-        <!-- EMPTY CLASSIC STATE -->
 
         <div
           id="classic-empty-state"
           class="distribution-placeholder"
         >
 
-          <h2>
-            CLASSIC LINE DISTRIBUTION
-          </h2>
+          <h2>CLASSIC LINE DISTRIBUTION</h2>
 
           <p>
             Add members to build your classic ranking.
@@ -646,9 +684,7 @@
 
       </div>
 
-
     </div>
-
 
 
     <!-- ======================================
@@ -665,7 +701,7 @@
       </h2>
 
 
-      <!-- MP3 FILE UPLOAD -->
+      <!-- MP3 UPLOAD -->
 
       <div class="music-upload-area">
 
@@ -682,7 +718,7 @@
       </div>
 
 
-      <!-- SELECTED SONG NAME -->
+      <!-- SONG NAME -->
 
       <p id="music-track-name">
         No MP3 selected
@@ -719,7 +755,7 @@
       </div>
 
 
-      <!-- PLAYBACK CONTROLS -->
+      <!-- PLAYER CONTROLS -->
 
       <div class="music-controls">
 
@@ -742,7 +778,7 @@
       </div>
 
 
-      <!-- VOLUME CONTROL -->
+      <!-- VOLUME -->
 
       <div class="music-volume-control">
 
@@ -772,7 +808,7 @@
       ></p>
 
 
-      <!-- AUDIO ELEMENT -->
+      <!-- AUDIO -->
 
       <audio
         id="music-audio"
@@ -782,15 +818,16 @@
     </section>
 
 
-
     <!-- ======================================
          ADD MEMBER BUTTON
          ====================================== -->
 
-    <button id="open-member-modal">
+    <button
+      type="button"
+      id="open-member-modal"
+    >
       + Add Member
     </button>
-
 
 
     <!-- ======================================
@@ -799,18 +836,15 @@
 
     <section class="member-list">
 
-      <h2>
-        Members
-      </h2>
+      <h2>Members</h2>
 
       <div id="member-list-items"></div>
 
     </section>
 
 
-
     <!-- ======================================
-         ADD MEMBER POP-UP
+         ADD MEMBER MODAL
          ====================================== -->
 
     <div
@@ -834,17 +868,14 @@
           ×
         </button>
 
-
         <h2 id="modal-title">
           Add Member
         </h2>
-
 
         <form
           id="member-form"
           class="member-setup"
         >
-
 
           <!-- MEMBER NAME -->
 
@@ -903,7 +934,7 @@
           >
 
 
-          <!-- MEMBER ERROR MESSAGE -->
+          <!-- ERROR MESSAGE -->
 
           <p
             id="shortcut-error"
@@ -912,9 +943,9 @@
           ></p>
 
 
-          <!-- SAVE MEMBER BUTTON -->
+          <!-- SAVE MEMBER -->
 
-          <div style="margin-top: 24px;">
+          <div style="margin-top:24px">
 
             <button
               type="submit"
@@ -931,9 +962,7 @@
 
     </div>
 
-
   </div>
-
 
 
   <!-- ========================================
