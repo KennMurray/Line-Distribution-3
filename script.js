@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', () => {
   const $ = id => document.getElementById(id);
 
@@ -2102,6 +2103,567 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ==========================================
+  // VIDEO CUSTOMIZATION — PREVIEW BACKGROUND
+  // Image/video backgrounds are separate from the website theme.
+  // Exporting the video will be implemented in a later step.
+  // ==========================================
+
+  const FILM_SETTINGS_KEY = 'lds-film-settings-v1';
+  const FILM_IMAGE_DB = 'lds-film-assets-v1';
+  const FILM_MAX_IMAGE_MB = 25;
+  const filmPreview = $('distribution-preview');
+  const filmUIHost = $('studio-side-tools') || recordingPanel;
+
+  let filmSettings = {
+    source: 'none',
+    blur: 0,
+    darkness: 30
+  };
+
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem(FILM_SETTINGS_KEY) || '{}'
+    );
+    if (saved && typeof saved === 'object') {
+      filmSettings.source = saved.source === 'image'
+        ? 'image' : 'none'; // Uploaded MP4 files are session-only.
+      filmSettings.blur = Number.isFinite(+saved.blur)
+        ? Math.max(0, Math.min(100, +saved.blur)) : 0;
+      filmSettings.darkness = Number.isFinite(+saved.darkness)
+        ? Math.max(0, Math.min(100, +saved.darkness)) : 30;
+    }
+  } catch {
+    // Invalid/outdated settings: use defaults.
+  }
+
+  let filmImageURL = null;
+  let filmVideoURL = null;
+  let filmVideoPreviewPaused = false;
+  let filmFileRevision = 0;
+
+  // IndexedDB stores only still images. MP4 files can be too large
+  // for browser storage, so the user selects them again after reload.
+  function filmImageStorage(operation, file = null) {
+    return new Promise((resolve, reject) => {
+      if (!window.indexedDB) {
+        reject(new Error('Browser storage is unavailable.'));
+        return;
+      }
+
+      const request = indexedDB.open(FILM_IMAGE_DB, 1);
+
+      request.onupgradeneeded = () => {
+        if (!request.result.objectStoreNames.contains('assets')) {
+          request.result.createObjectStore('assets');
+        }
+      };
+
+      request.onerror = () => reject(
+        request.error || new Error('Could not open image storage.')
+      );
+
+      request.onsuccess = () => {
+        const db = request.result;
+        const transaction = db.transaction(
+          'assets',
+          operation === 'read' ? 'readonly' : 'readwrite'
+        );
+        const store = transaction.objectStore('assets');
+        const task = operation === 'write'
+          ? store.put(file, 'film-image')
+          : store.get('film-image');
+        let data = null;
+        task.onsuccess = () => { data = task.result || null; };
+        transaction.oncomplete = () => {
+          db.close();
+          resolve(data);
+        };
+        transaction.onerror = () => {
+          db.close();
+          reject(transaction.error || new Error('Image storage failed.'));
+        };
+        transaction.onabort = () => {
+          db.close();
+          reject(new Error('Image storage interrupted.'));
+        };
+      };
+    });
+  }
+
+  addCSS(`
+    #distribution-preview {
+      position: relative;
+      isolation: isolate;
+    }
+    #film-background {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+      border-radius: inherit;
+    }
+    #film-background[hidden],
+    #film-background img[hidden],
+    #film-background video[hidden] {
+      display: none !important;
+    }
+    #film-background img,
+    #film-background video {
+      position: absolute;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      image-rendering: auto;
+      transform: scale(1.08);
+      transform-origin: center;
+    }
+    #film-background-shade {
+      position: absolute;
+      inset: 0;
+      background: #000;
+      pointer-events: none;
+    }
+    #distribution-preview > .distribution-layout {
+      position: relative;
+      z-index: 1;
+    }
+    #open-film-settings {
+      display: block;
+      width: 100%;
+      margin: 0 0 12px;
+      padding: 11px 8px;
+      font-size: 12px;
+      border-radius: 9px;
+    }
+    #film-settings-modal {
+      z-index: 1400;
+    }
+    #film-settings-modal .film-settings-panel {
+      max-width: 540px;
+    }
+    .film-form-row {
+      display: grid;
+      gap: 7px;
+      margin: 15px 0;
+    }
+    #film-image-options[hidden],
+    #film-video-options[hidden] {
+      display: none !important;
+    }
+    .film-form-row label {
+      color: #f2eaf1;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .film-form-row select,
+    .film-form-row input[type=file] {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid #595367;
+      border-radius: 9px;
+      background: #292837;
+      padding: 10px;
+      color: white;
+    }
+    .film-form-row input[type=range] {
+      width: 100%;
+      accent-color: var(--accent, #ff80c8);
+    }
+    .film-slider-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .film-hint {
+      color: #c1bbcb;
+      font-size: 12px;
+      line-height: 1.5;
+      margin: 5px 0 12px;
+    }
+    #film-feedback {
+      min-height: 1.4em;
+      font-size: 12px;
+      color: #f7c6dd;
+      overflow-wrap: anywhere;
+    }
+    .film-modal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 16px;
+    }
+    .film-secondary {
+      color: white;
+      background: #3c3749;
+    }
+    .film-settings-panel button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+  `);
+
+  const filmBackground = document.createElement('div');
+  filmBackground.id = 'film-background';
+  filmBackground.hidden = true;
+
+  const filmImage = document.createElement('img');
+  filmImage.id = 'film-background-image';
+  filmImage.alt = '';
+  filmImage.hidden = true;
+  filmImage.decoding = 'async';
+
+  const filmVideo = document.createElement('video');
+  filmVideo.id = 'film-background-video';
+  filmVideo.muted = true;
+  filmVideo.defaultMuted = true;
+  filmVideo.loop = true;
+  filmVideo.playsInline = true;
+  filmVideo.preload = 'metadata';
+  filmVideo.hidden = true;
+  filmVideo.setAttribute('aria-hidden', 'true');
+
+  const filmShade = document.createElement('div');
+  filmShade.id = 'film-background-shade';
+  filmBackground.append(filmImage, filmVideo, filmShade);
+  filmPreview.prepend(filmBackground);
+
+  const filmSettingsButton = document.createElement('button');
+  filmSettingsButton.id = 'open-film-settings';
+  filmSettingsButton.type = 'button';
+  filmSettingsButton.textContent = '🎬 Video Customization';
+  const toolsTitle = filmUIHost.querySelector('h2');
+  if (toolsTitle) toolsTitle.after(filmSettingsButton);
+  else filmUIHost.prepend(filmSettingsButton);
+
+  const filmModal = document.createElement('div');
+  filmModal.id = 'film-settings-modal';
+  filmModal.className = 'modal-overlay';
+  filmModal.setAttribute('aria-hidden', 'true');
+  filmModal.innerHTML = `
+    <section class="modal-content film-settings-panel"
+      role="dialog" aria-modal="true" aria-labelledby="film-modal-title">
+      <button class="close-modal" type="button" id="film-close-x"
+        aria-label="Close video customization">×</button>
+      <h2 id="film-modal-title">🎬 Video Customization</h2>
+      <p class="film-hint">Customize the background inside your
+        Classic/Visual preview. Your website background stays unchanged.</p>
+
+      <div class="film-form-row">
+        <label for="film-source-select">Background Source</label>
+        <select id="film-source-select">
+          <option value="none">None — dark background</option>
+          <option value="image">Image (PNG / JPG / WebP)</option>
+          <option value="video">Video (MP4)</option>
+        </select>
+      </div>
+
+      <div id="film-image-options" class="film-form-row" hidden>
+        <label for="film-image-upload">Choose background image</label>
+        <input id="film-image-upload" type="file" accept="image/*">
+        <p class="film-hint">Original image quality is preserved.
+          Images up to 25 MB are saved in this browser.</p>
+      </div>
+
+      <div id="film-video-options" class="film-form-row" hidden>
+        <label for="film-video-upload">Choose MP4 music video</label>
+        <input id="film-video-upload" type="file" accept=".mp4,video/mp4">
+        <p class="film-hint">Video is always muted. With an MP3 it follows
+          the music player's timeline. MP4 must be reselected after reload.</p>
+        <button type="button" class="film-secondary" id="film-video-pause">
+          Pause Background
+        </button>
+      </div>
+
+      <div class="film-form-row">
+        <div class="film-slider-label">
+          <label for="film-blur">Background Blur</label>
+          <strong id="film-blur-value">0%</strong>
+        </div>
+        <input id="film-blur" type="range" min="0" max="100" step="1">
+      </div>
+
+      <div class="film-form-row">
+        <div class="film-slider-label">
+          <label for="film-darkness">Background Darkness</label>
+          <strong id="film-darkness-value">30%</strong>
+        </div>
+        <input id="film-darkness" type="range" min="0" max="100" step="1">
+      </div>
+
+      <p class="film-hint">Effects apply only to the background —
+        member photos, neon glow, names and progress rings stay sharp.</p>
+      <p id="film-feedback" role="status" aria-live="polite"></p>
+      <div class="film-modal-actions">
+        <button type="button" id="film-reset" class="film-secondary">
+          Reset Background
+        </button>
+        <button type="button" id="film-close">Done</button>
+      </div>
+    </section>
+  `;
+  document.body.append(filmModal);
+
+  const filmSourceInput = $('film-source-select');
+  const filmImageOptions = $('film-image-options');
+  const filmVideoOptions = $('film-video-options');
+  const filmImageInput = $('film-image-upload');
+  const filmVideoInput = $('film-video-upload');
+  const filmBlurInput = $('film-blur');
+  const filmDarknessInput = $('film-darkness');
+  const filmFeedback = $('film-feedback');
+  const filmPauseButton = $('film-video-pause');
+
+  function filmMessage(value = '') {
+    filmFeedback.textContent = value;
+  }
+
+  function saveFilmSettings() {
+    try {
+      localStorage.setItem(
+        FILM_SETTINGS_KEY,
+        JSON.stringify(filmSettings)
+      );
+    } catch {
+      filmMessage('Browser blocked saving these settings.');
+    }
+  }
+
+  function syncFilmVideo(force = false) {
+    if (
+      filmSettings.source !== 'video' ||
+      !filmVideoURL ||
+      !filmVideo.src ||
+      studio.hidden
+    ) {
+      filmVideo.pause();
+      return;
+    }
+
+    const mp3Loaded = musicReady && Number.isFinite(audio.duration);
+    if (mp3Loaded) {
+      if (Number.isFinite(filmVideo.duration) && filmVideo.duration > 0) {
+        const desired = audio.currentTime % filmVideo.duration;
+        const difference = Math.abs(filmVideo.currentTime - desired);
+        if (force || Math.min(difference,
+            filmVideo.duration - difference) > 0.45) {
+          try { filmVideo.currentTime = desired; } catch { /* loading */ }
+        }
+      }
+
+      if (audio.paused || audio.ended) {
+        filmVideo.pause();
+      } else if (filmVideo.paused) {
+        filmVideo.play().catch(() => {
+          filmMessage('This MP4 could not be played in your browser.');
+        });
+      }
+    } else if (filmVideoPreviewPaused) {
+      filmVideo.pause();
+    } else if (filmVideo.paused) {
+      filmVideo.play().catch(() => {
+        filmMessage('This MP4 could not be played in your browser.');
+      });
+    }
+
+    filmPauseButton.disabled = mp3Loaded;
+    filmPauseButton.textContent = filmVideoPreviewPaused
+      ? 'Play Background' : 'Pause Background';
+  }
+
+  function applyFilmBackground() {
+    filmSourceInput.value = filmSettings.source;
+    filmImageOptions.hidden = filmSettings.source !== 'image';
+    filmVideoOptions.hidden = filmSettings.source !== 'video';
+    filmBlurInput.value = filmSettings.blur;
+    filmDarknessInput.value = filmSettings.darkness;
+    $('film-blur-value').textContent = filmSettings.blur + '%';
+    $('film-darkness-value').textContent = filmSettings.darkness + '%';
+
+    const useImage = filmSettings.source === 'image' && !!filmImageURL;
+    const useVideo = filmSettings.source === 'video' && !!filmVideoURL;
+    filmBackground.hidden = !useImage && !useVideo;
+    filmImage.hidden = !useImage;
+    filmVideo.hidden = !useVideo;
+    filmShade.style.opacity = String(filmSettings.darkness / 100);
+
+    // CSS pixels: 0% = 0 px; 100% = 32 px. Foreground is not blurred.
+    const blurPixels = filmSettings.blur * 0.32;
+    filmImage.style.filter = `blur(${blurPixels}px)`;
+    filmVideo.style.filter = `blur(${blurPixels}px)`;
+    filmImage.style.transform = `scale(${1 + blurPixels / 160})`;
+    filmVideo.style.transform = `scale(${1 + blurPixels / 160})`;
+    syncFilmVideo(true);
+  }
+
+  filmSettingsButton.addEventListener('click', () => {
+    filmMessage('');
+    filmModal.classList.add('open');
+    filmModal.setAttribute('aria-hidden', 'false');
+    filmSourceInput.focus();
+  });
+
+  function closeFilmModal() {
+    filmModal.classList.remove('open');
+    filmModal.setAttribute('aria-hidden', 'true');
+    filmSettingsButton.focus();
+  }
+
+  $('film-close').addEventListener('click', closeFilmModal);
+  $('film-close-x').addEventListener('click', closeFilmModal);
+  filmModal.addEventListener('click', event => {
+    if (event.target === filmModal) closeFilmModal();
+  });
+  filmModal.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      closeFilmModal();
+    }
+  });
+
+  filmSourceInput.addEventListener('change', () => {
+    filmSettings.source = filmSourceInput.value;
+    saveFilmSettings();
+    applyFilmBackground();
+    if (filmSettings.source === 'image' && !filmImageURL) {
+      filmMessage('Choose an image to display it in the preview.');
+    } else if (filmSettings.source === 'video' && !filmVideoURL) {
+      filmMessage('Choose an MP4 file to display it in the preview.');
+    } else {
+      filmMessage('');
+    }
+  });
+
+  filmBlurInput.addEventListener('input', () => {
+    filmSettings.blur = Number(filmBlurInput.value);
+    saveFilmSettings();
+    applyFilmBackground();
+  });
+  filmDarknessInput.addEventListener('input', () => {
+    filmSettings.darkness = Number(filmDarknessInput.value);
+    saveFilmSettings();
+    applyFilmBackground();
+  });
+
+  filmImageInput.addEventListener('change', async () => {
+    const file = filmImageInput.files[0];
+    filmImageInput.value = '';
+    if (!file) return;
+
+    if (!file.type.startsWith('image/') ||
+        file.size > FILM_MAX_IMAGE_MB * 1024 * 1024) {
+      filmMessage('Choose an image under 25 MB.');
+      return;
+    }
+
+    const revision = ++filmFileRevision;
+    const url = URL.createObjectURL(file);
+    const oldURL = filmImageURL;
+    filmImageURL = url;
+    filmImage.src = url;
+    filmSettings.source = 'image';
+    if (oldURL) URL.revokeObjectURL(oldURL);
+    saveFilmSettings();
+    applyFilmBackground();
+    filmMessage('Image added! Saving it in this browser...');
+
+    try {
+      await filmImageStorage('write', file);
+      if (revision === filmFileRevision) {
+        filmMessage('Image saved. It will stay after refresh.');
+      }
+    } catch {
+      if (revision === filmFileRevision) {
+        filmMessage('Image works now, but could not be saved for next visit.');
+      }
+    }
+  });
+
+  filmVideoInput.addEventListener('change', () => {
+    const file = filmVideoInput.files[0];
+    filmVideoInput.value = '';
+    if (!file) return;
+    if (!(/\.mp4$/i.test(file.name) || file.type === 'video/mp4')) {
+      filmMessage('Choose an MP4 video file.');
+      return;
+    }
+
+    const oldURL = filmVideoURL;
+    filmVideo.pause();
+    filmVideoURL = URL.createObjectURL(file);
+    filmVideo.src = filmVideoURL;
+    filmVideo.load();
+    if (oldURL) URL.revokeObjectURL(oldURL);
+    filmVideoPreviewPaused = false;
+    filmSettings.source = 'video';
+    saveFilmSettings();
+    applyFilmBackground();
+    filmMessage('MP4 loaded (muted). Select it again after reloading this page.');
+  });
+
+  filmPauseButton.addEventListener('click', () => {
+    if (musicReady) return;
+    filmVideoPreviewPaused = !filmVideoPreviewPaused;
+    syncFilmVideo();
+  });
+
+  $('film-reset').addEventListener('click', () => {
+    filmSettings = {source: 'none', blur: 0, darkness: 30};
+    saveFilmSettings();
+    applyFilmBackground();
+    filmMessage('Background reset. Your uploaded files are not deleted.');
+  });
+
+  filmVideo.addEventListener('loadedmetadata', () => syncFilmVideo(true));
+  filmVideo.addEventListener('error', () => {
+    if (filmVideoURL) filmMessage(
+      'The browser cannot decode this MP4. Try an H.264 MP4.'
+    );
+  });
+  // Music-player timing is authoritative when an MP3 is present.
+  ['play', 'pause', 'seeked', 'timeupdate', 'ended', 'loadedmetadata']
+    .forEach(name => audio.addEventListener(name, () => {
+      syncFilmVideo(name === 'seeked' || name === 'loadedmetadata');
+    }));
+
+  backToSelection.addEventListener('click', () => {
+    filmVideo.pause();
+  });
+  modeForm.addEventListener('submit', () => {
+    requestAnimationFrame(() => syncFilmVideo(true));
+  });
+
+  // The background video is deliberately not persisted.
+  // Restore previously uploaded still image without replacing page artwork.
+  filmImageStorage('read').then(blob => {
+    if (filmFileRevision !== 0) return;
+    if (!(blob instanceof Blob)) {
+      if (filmSettings.source === 'image') {
+        filmSettings.source = 'none';
+        saveFilmSettings();
+        applyFilmBackground();
+      }
+      return;
+    }
+    filmImageURL = URL.createObjectURL(blob);
+    filmImage.src = filmImageURL;
+    applyFilmBackground();
+  }).catch(() => {
+    // Studio remains fully usable if storage is unavailable.
+  });
+
+  window.addEventListener('pagehide', () => {
+    filmVideo.pause();
+    if (filmImageURL) URL.revokeObjectURL(filmImageURL);
+    if (filmVideoURL) URL.revokeObjectURL(filmVideoURL);
+  });
+
+  applyFilmBackground();
+
+  // ==========================================
   // APPEARANCE SETTINGS
   // ==========================================
 
@@ -3909,6 +4471,7 @@ document.addEventListener('DOMContentLoaded', () => {
       memberModal.classList.contains('open') ||
       editOverlay.classList.contains('open') ||
       appearanceOverlay.classList.contains('open') ||
+      filmModal.classList.contains('open') ||
       groupDialogOpen()
     ) {
       return;
