@@ -5380,172 +5380,108 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
-  // FRAME AND IMAGE PROCESSING
-  // ==========================================
-
-  function exportPNG(canvas) {
-    return new Promise((resolve, reject) => {
-      canvas.toBlob(
-        blob => {
-          if (!blob) {
-            reject(new Error('Cannot render PNG frame.'));
-            return;
-          }
-
-          blob.arrayBuffer().then(buffer => {
-            resolve(new Uint8Array(buffer));
-          }).catch(reject);
-        },
-        'image/png'
-      );
-    });
-  }
-
-  async function exportPhotos() {
-    const images = new Map();
-
-    await Promise.all(
-      members.map(async member => {
-        if (!member.photoURL) {
-          images.set(member, null);
-          return;
-        }
-
-        const image = new Image();
-        image.src = member.photoURL;
-
-        try {
-          await image.decode();
-          images.set(member, image);
-        } catch {
-          images.set(member, null);
-        }
-      })
-    );
-
-    return images;
-  }
-
-  function exportGeometry() {
-    const portrait =
-      studio.dataset.visualMode === 'classic';
-
-    const width = portrait ? 1080 : 1920;
-    const height = portrait ? 1920 : 1080;
-
-    const previewRect =
-      filmPreview.getBoundingClientRect();
-
-    if (
-      previewRect.width < 1 ||
-      previewRect.height < 1
-    ) {
-      throw new Error('Preview is not visible.');
-    }
-
-    return {
-      width,
-      height,
-      previewRect,
-      sx: width / previewRect.width,
-      sy: height / previewRect.height,
-      mode: portrait ? 'classic' : 'visual'
-    };
-  }
-
-  // ==========================================
   // LOAD FFMPEG WASM
   // ==========================================
 
   async function exportLoadEncoder() {
-    if (exportEncoder) {
-      return exportEncoder;
-    }
+    if (exportEncoder) return exportEncoder;
 
-    exportStatus(
-      'Loading FFmpeg encoder (~30 MB). Please wait...',
-      1
-    );
+    exportStatus('Loading FFmpeg encoder (~32 MB)...', 1);
 
-    const base = 'https://cdn.jsdelivr.net/npm/';
+    const library =
+      'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/esm/';
+    const coreBase =
+      'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm/';
+    const temporaryURLs = [];
 
-    if (!window.FFmpegWASM?.FFmpeg) {
-      await new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-
-        script.src =
-          base +
-          '@ffmpeg/ffmpeg@0.12.15/dist/umd/ffmpeg.js';
-
-        script.onload = resolve;
-
-        script.onerror = () => reject(
-          new Error(
-            'Cannot download the encoder. Check your connection.'
-          )
-        );
-
-        document.head.append(script);
-      });
-    }
-
-    const urls = [];
-
-    async function blobURL(url, type) {
+    async function download(url) {
       const response = await fetch(url);
 
       if (!response.ok) {
         throw new Error(
-          'Could not download FFmpeg component (' +
-          response.status +
-          ').'
+          `FFmpeg download failed (${response.status}): ${url}`
         );
       }
 
-      const objectURL = URL.createObjectURL(
-        new Blob(
-          [await response.arrayBuffer()],
-          { type }
-        )
+      return response;
+    }
+
+    async function makeBlobURL(url, contentType) {
+      const response = await download(url);
+
+      const blob = new Blob(
+        [await response.arrayBuffer()],
+        { type: contentType }
       );
 
-      urls.push(objectURL);
+      const objectURL = URL.createObjectURL(blob);
+      temporaryURLs.push(objectURL);
 
       return objectURL;
     }
 
-    const engine = new window.FFmpegWASM.FFmpeg();
-
     try {
-      const worker = await blobURL(
-        base +
-          '@ffmpeg/ffmpeg@0.12.15/dist/umd/814.ffmpeg.js',
+      const { FFmpeg } = await import(library + 'index.js');
+      const engine = new FFmpeg();
+
+      const workerResponse = await download(
+        library + 'worker.js'
+      );
+
+      let workerSource = await workerResponse.text();
+
+      if (
+        !workerSource.includes('"./const.js"') ||
+        !workerSource.includes('"./errors.js"')
+      ) {
+        throw new Error('Unexpected FFmpeg worker format.');
+      }
+
+      workerSource = workerSource
+        .replaceAll(
+          '"./const.js"',
+          JSON.stringify(library + 'const.js')
+        )
+        .replaceAll(
+          '"./errors.js"',
+          JSON.stringify(library + 'errors.js')
+        );
+
+      const workerURL = URL.createObjectURL(
+        new Blob(
+          [workerSource],
+          { type: 'text/javascript' }
+        )
+      );
+
+      temporaryURLs.push(workerURL);
+
+      const coreURL = await makeBlobURL(
+        coreBase + 'ffmpeg-core.js',
         'text/javascript'
       );
 
-      const core = await blobURL(
-        base +
-          '@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.js',
-        'text/javascript'
-      );
-
-      const wasm = await blobURL(
-        base +
-          '@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.wasm',
+      const wasmURL = await makeBlobURL(
+        coreBase + 'ffmpeg-core.wasm',
         'application/wasm'
       );
 
+      exportStatus('Starting the FFmpeg encoder...', 3);
+
       await engine.load({
-        classWorkerURL: worker,
-        coreURL: core,
-        wasmURL: wasm
+        classWorkerURL: workerURL,
+        coreURL,
+        wasmURL
       });
 
       exportEncoder = engine;
 
       return engine;
+
     } finally {
-      urls.forEach(url => URL.revokeObjectURL(url));
+      temporaryURLs.forEach(url => {
+        URL.revokeObjectURL(url);
+      });
     }
   }
 
