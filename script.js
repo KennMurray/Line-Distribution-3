@@ -4551,3 +4551,1351 @@ document.addEventListener('DOMContentLoaded', () => {
   setStatus();
 
 });
+
+// INITIAL STATE
+
+  // ==========================================
+  // TRANSPARENT WEBM EXPORT (VP9 + ALPHA)
+  // ==========================================
+
+  // The export engine is loaded only when needed.
+  // Existing members, groups and recordings are not modified.
+
+  const exportButton = document.createElement('button');
+  exportButton.id = 'open-export-video';
+  exportButton.type = 'button';
+  exportButton.textContent = '🎞 Export Video';
+
+  filmSettingsButton.after(exportButton);
+
+  addCSS(`
+    #open-export-video {
+      width: 100%;
+      margin: 10px 0;
+      background: var(--accent, #ff80c8);
+    }
+
+    #lds-export-modal {
+      z-index: 1600;
+    }
+
+    #lds-export-modal .modal-content {
+      max-width: 520px;
+    }
+
+    #lds-export-modal .export-option {
+      display: block;
+      background: #292736;
+      border: 1px solid #51465b;
+      border-radius: 12px;
+      padding: 14px;
+      margin: 10px 0;
+    }
+
+    #lds-export-modal .export-option input {
+      margin-right: 8px;
+    }
+
+    #lds-export-modal .export-hint {
+      color: #cbc3d3;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    #lds-export-modal #export-short-wrap {
+      margin: 14px 0;
+      padding: 12px;
+      border-radius: 9px;
+      background: #302a3b;
+    }
+
+    #lds-export-modal #export-compat {
+      margin: 14px 0;
+      padding: 12px;
+      border: 1px solid #78664d;
+      background: #352f2e;
+      border-radius: 10px;
+    }
+
+    #lds-export-modal #export-message {
+      min-height: 35px;
+      white-space: pre-wrap;
+      color: #f6d4e7;
+      font-size: 13px;
+    }
+
+    #lds-export-modal progress {
+      width: 100%;
+      height: 14px;
+      accent-color: var(--accent, #ff80c8);
+    }
+
+    #lds-export-modal .export-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    #lds-export-modal .export-actions button {
+      flex: 1;
+    }
+
+    #lds-export-modal button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+  `);
+
+  const exportModal = document.createElement('div');
+
+  exportModal.id = 'lds-export-modal';
+  exportModal.className = 'modal-overlay';
+
+  exportModal.innerHTML = `
+    <div class="modal-content"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="export-title">
+
+      <button
+        type="button"
+        id="export-close-x"
+        class="close-modal"
+        aria-label="Close">×</button>
+
+      <h2 id="export-title">🎞 Export Video</h2>
+
+      <label class="export-option">
+        <input
+          type="radio"
+          name="lds-export-format"
+          value="webm"
+          checked>
+
+        <strong>Transparent WebM — 1080p</strong>
+
+        <p class="export-hint">
+          Photos, neon glow, names, timers and crowns.
+          No background.
+        </p>
+      </label>
+
+      <label class="export-option" style="opacity:.55">
+        <input
+          type="radio"
+          name="lds-export-format"
+          value="mp4"
+          disabled>
+
+        <strong>Standard MP4 — Coming Next</strong>
+
+        <p class="export-hint">
+          Full video with music and your chosen background.
+        </p>
+      </label>
+
+      <div id="export-short-wrap">
+        <label>
+          <input
+            type="checkbox"
+            id="export-short"
+            checked>
+
+          <strong>Short Export — 5 Seconds</strong>
+        </label>
+
+        <p class="export-hint">
+          Export five seconds to test transparency and effects.
+          Without a finished recording, a sample overlay is used.
+        </p>
+      </div>
+
+      <div id="export-compat">
+        <strong>⚠ Compatibility Notice</strong>
+
+        <p class="export-hint">
+          Some versions of CapCut may display a black background
+          instead of transparency.
+
+          Clipchamp successfully displayed our test WebM.
+
+          We recommend trying Short Export first.
+        </p>
+      </div>
+
+      <p class="export-hint">
+        VP9 alpha export uses FFmpeg in your browser.
+        The first download is approximately 30 MB.
+        Rendering at 1080p may take some time.
+
+        Your music, recorded lines and saved groups
+        will not be changed.
+
+        Transparent overlays are exported without audio.
+      </p>
+
+      <progress
+        id="export-progress"
+        max="100"
+        value="0"></progress>
+
+      <p
+        id="export-message"
+        role="status"
+        aria-live="polite">
+        Ready for a test.
+      </p>
+
+      <div class="export-actions">
+        <button type="button" id="export-begin">
+          Export WebM
+        </button>
+
+        <button
+          type="button"
+          id="export-close"
+          style="background:#484354;color:white">
+          Close
+        </button>
+      </div>
+    </div>
+  `;
+
+  studio.append(exportModal);
+
+  const exportShort = $('export-short');
+  const exportProgress = $('export-progress');
+  const exportMessage = $('export-message');
+  const exportBegin = $('export-begin');
+
+  let exportBusy = false;
+  let exportEncoder = null;
+
+  function closeExportWindow() {
+    if (exportBusy) return;
+
+    hide(exportModal);
+  }
+
+  exportButton.addEventListener('click', () => {
+    if (isLocked()) {
+      setStatus('Finish recording before exporting.');
+      return;
+    }
+
+    show(exportModal);
+
+    exportProgress.value = 0;
+    exportMessage.textContent = 'Ready for a test.';
+  });
+
+  $('export-close').addEventListener(
+    'click',
+    closeExportWindow
+  );
+
+  $('export-close-x').addEventListener(
+    'click',
+    closeExportWindow
+  );
+
+  exportModal.addEventListener('click', event => {
+    if (event.target === exportModal) {
+      closeExportWindow();
+    }
+  });
+
+  exportModal.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      closeExportWindow();
+    }
+  });
+
+  // Prevent member shortcuts while the export dialog is open.
+
+  document.addEventListener('keydown', event => {
+    if (!exportModal.classList.contains('open')) {
+      return;
+    }
+
+    if (event.key === 'Escape' && !exportBusy) {
+      event.preventDefault();
+      closeExportWindow();
+    }
+
+    event.stopImmediatePropagation();
+  }, true);
+
+  function exportStatus(message, percentage) {
+    exportMessage.textContent = message;
+
+    if (Number.isFinite(percentage)) {
+      exportProgress.value = Math.max(
+        0,
+        Math.min(100, percentage)
+      );
+    }
+  }
+
+  function exportColor(hex, alpha = 1) {
+    if (/^#[0-9a-f]{6}$/i.test(hex)) {
+      const value = parseInt(hex.slice(1), 16);
+
+      return `rgba(
+        ${value >> 16},
+        ${(value >> 8) & 255},
+        ${value & 255},
+        ${alpha}
+      )`;
+    }
+
+    return `rgba(255,128,200,${alpha})`;
+  }
+
+  function exportPosition(rect, origin, scaleX, scaleY) {
+    return {
+      x: (rect.left - origin.left) * scaleX,
+      y: (rect.top - origin.top) * scaleY,
+      w: rect.width * scaleX,
+      h: rect.height * scaleY
+    };
+  }
+
+  function exportText(
+    context,
+    value,
+    x,
+    y,
+    size,
+    color,
+    weight = '700',
+    alignment = 'center'
+  ) {
+    context.save();
+
+    context.font = `${weight} ${size}px Arial, sans-serif`;
+    context.fillStyle = color;
+    context.textAlign = alignment;
+    context.textBaseline = 'middle';
+
+    context.shadowBlur = 2;
+    context.shadowColor = 'rgba(0,0,0,.7)';
+
+    context.fillText(String(value), x, y);
+
+    context.restore();
+  }
+
+  function exportPhoto(
+    context,
+    image,
+    centerX,
+    centerY,
+    radius,
+    name,
+    color
+  ) {
+    context.save();
+
+    context.beginPath();
+
+    context.arc(
+      centerX,
+      centerY,
+      radius,
+      0,
+      Math.PI * 2
+    );
+
+    context.clip();
+
+    context.fillStyle = '#282633';
+
+    context.fillRect(
+      centerX - radius,
+      centerY - radius,
+      radius * 2,
+      radius * 2
+    );
+
+    if (image && image.naturalWidth) {
+      const ratio = Math.max(
+        radius * 2 / image.naturalWidth,
+        radius * 2 / image.naturalHeight
+      );
+
+      const width = image.naturalWidth * ratio;
+      const height = image.naturalHeight * ratio;
+
+      context.drawImage(
+        image,
+        centerX - width / 2,
+        centerY - height / 2,
+        width,
+        height
+      );
+    } else {
+      exportText(
+        context,
+        name.charAt(0).toUpperCase(),
+        centerX,
+        centerY,
+        radius * .85,
+        color
+      );
+    }
+
+    context.restore();
+
+    context.save();
+
+    context.strokeStyle = color;
+    context.lineWidth = Math.max(2, radius * .055);
+    context.shadowColor = color;
+    context.shadowBlur = radius * .2;
+
+    context.beginPath();
+
+    context.arc(
+      centerX,
+      centerY,
+      radius,
+      0,
+      Math.PI * 2
+    );
+
+    context.stroke();
+
+    context.restore();
+  }
+
+  function exportWinner(list) {
+    return list.reduce((best, member) => {
+      if (
+        !best ||
+        member.totalSeconds > best.totalSeconds
+      ) {
+        return member;
+      }
+
+      return best;
+    }, null);
+  }
+
+  function exportState(time, hasTimeline, snapshot) {
+    const current = members.map((member, index) => {
+      let seconds = 0;
+      let active = false;
+
+      if (hasTimeline) {
+        for (const line of member.lines) {
+          const end = line.end === null
+            ? time
+            : line.end;
+
+          seconds += Math.max(
+            0,
+            Math.min(time, end) - line.start
+          );
+
+          if (line.start <= time && time < end) {
+            active = true;
+          }
+        }
+      } else {
+        seconds = snapshot[index].seconds;
+        active = snapshot[index].active;
+      }
+
+      return {
+        member,
+        seconds,
+        active,
+        percentage: 0
+      };
+    });
+
+    const total = current.reduce(
+      (sum, state) => sum + state.seconds,
+      0
+    );
+
+    current.forEach(state => {
+      state.percentage = total > 0
+        ? state.seconds / total * 100
+        : 0;
+    });
+
+    return current;
+  }
+
+  function exportRender(
+    context,
+    time,
+    geometry,
+    images,
+    hasTimeline,
+    snapshot,
+    showCrown
+  ) {
+    const {
+      width,
+      height,
+      previewRect,
+      sx,
+      sy,
+      mode
+    } = geometry;
+
+    // Transparent canvas: never paint an opaque background.
+
+    context.clearRect(0, 0, width, height);
+
+    const states = exportState(
+      time,
+      hasTimeline,
+      snapshot
+    );
+
+    const winner = showCrown
+      ? exportWinner(
+          states.map(state => ({
+            member: state.member,
+            totalSeconds: state.seconds
+          }))
+        )
+      : null;
+
+    // ==========================================
+    // VISUAL MODE
+    // ==========================================
+
+    if (mode === 'visual') {
+      const stageRect = visualStage.getBoundingClientRect();
+
+      const stageScale = Math.min(sx, sy);
+
+      const photoSize = parseFloat(
+        getComputedStyle(visualStage)
+          .getPropertyValue('--visual-photo-size')
+      ) || 80;
+
+      for (const state of states) {
+        const member = state.member;
+
+        const position = member.visualPosition || {
+          x: 50,
+          y: 50
+        };
+
+        const centerX = (
+          stageRect.left -
+          previewRect.left +
+          stageRect.width * position.x / 100
+        ) * sx;
+
+        const centerY = (
+          stageRect.top -
+          previewRect.top +
+          stageRect.height * position.y / 100
+        ) * sy;
+
+        const outerRadius =
+          photoSize *
+          stageScale *
+          .44 *
+          (state.active ? 1.10 : 1);
+
+        const photoRadius = outerRadius * .82;
+
+        const color = exportColor(member.color);
+
+        context.save();
+
+        context.strokeStyle = exportColor(
+          member.color,
+          state.active ? 1 : .85
+        );
+
+        context.lineWidth = Math.max(
+          5,
+          outerRadius * .12
+        );
+
+        context.shadowColor = color;
+
+        context.shadowBlur = state.active
+          ? 32
+          : 14;
+
+        context.beginPath();
+
+        context.arc(
+          centerX,
+          centerY,
+          outerRadius,
+          -Math.PI / 2,
+          Math.PI * 1.5
+        );
+
+        context.stroke();
+
+        context.shadowBlur = state.active
+          ? 46
+          : 18;
+
+        context.lineCap = 'round';
+
+        context.lineWidth = Math.max(
+          6,
+          outerRadius * .11
+        );
+
+        context.beginPath();
+
+        context.arc(
+          centerX,
+          centerY,
+          outerRadius,
+          -Math.PI / 2,
+          -Math.PI / 2 +
+            state.percentage / 100 * Math.PI * 2
+        );
+
+        context.stroke();
+
+        context.restore();
+
+        exportPhoto(
+          context,
+          images.get(member),
+          centerX,
+          centerY,
+          photoRadius,
+          member.name,
+          color
+        );
+
+        const fontSize = Math.max(
+          17,
+          photoSize * stageScale * .15
+        );
+
+        exportText(
+          context,
+          member.name,
+          centerX,
+          centerY + outerRadius + fontSize * .9,
+          fontSize,
+          color
+        );
+
+        exportText(
+          context,
+          state.seconds.toFixed(1) + 's',
+          centerX,
+          centerY + outerRadius + fontSize * 2.15,
+          fontSize * .9,
+          '#ffffff'
+        );
+
+        exportText(
+          context,
+          state.percentage.toFixed(1) + '%',
+          centerX,
+          centerY + outerRadius + fontSize * 3.28,
+          fontSize * .85,
+          '#e2dce6'
+        );
+
+        if (
+          winner?.member === member &&
+          state.seconds > 0
+        ) {
+          context.save();
+
+          context.shadowColor = color;
+          context.shadowBlur = 22;
+
+          exportText(
+            context,
+            '♕',
+            centerX,
+            centerY - outerRadius - fontSize * .8,
+            fontSize * 2.1,
+            '#ffffff'
+          );
+
+          context.restore();
+        }
+      }
+    }
+
+    // ==========================================
+    // CLASSIC MODE
+    // ==========================================
+
+    else {
+      for (const state of states) {
+        const member = state.member;
+        const ui = member.classicUI;
+
+        if (!ui) continue;
+
+        const avatar = exportPosition(
+          ui.photo.getBoundingClientRect(),
+          previewRect,
+          sx,
+          sy
+        );
+
+        const progressBar = exportPosition(
+          ui.progress.getBoundingClientRect(),
+          previewRect,
+          sx,
+          sy
+        );
+
+        const color = exportColor(member.color);
+
+        const radius = Math.min(
+          avatar.w,
+          avatar.h
+        ) / 2;
+
+        const centerX = avatar.x + radius;
+        const centerY = avatar.y + radius;
+
+        if (state.active) {
+          context.save();
+
+          context.shadowColor = color;
+          context.shadowBlur = 35;
+          context.strokeStyle = color;
+          context.lineWidth = 4;
+
+          context.beginPath();
+
+          context.arc(
+            centerX,
+            centerY,
+            radius + 2,
+            0,
+            Math.PI * 2
+          );
+
+          context.stroke();
+          context.restore();
+        }
+
+        exportPhoto(
+          context,
+          images.get(member),
+          centerX,
+          centerY,
+          radius,
+          member.name,
+          color
+        );
+
+        const nameSize = Math.max(
+          15,
+          radius * .46
+        );
+
+        exportText(
+          context,
+          member.name,
+          progressBar.x,
+          progressBar.y - nameSize * .95,
+          nameSize,
+          color,
+          '700',
+          'left'
+        );
+
+        exportText(
+          context,
+          state.seconds.toFixed(1) + 's',
+          progressBar.x + progressBar.w,
+          progressBar.y - nameSize * .95,
+          nameSize * .85,
+          '#ffffff',
+          '700',
+          'right'
+        );
+
+        context.save();
+
+        context.fillStyle = 'rgba(240,240,255,.18)';
+
+        context.fillRect(
+          progressBar.x,
+          progressBar.y,
+          progressBar.w,
+          Math.max(5, progressBar.h)
+        );
+
+        context.shadowColor = color;
+        context.shadowBlur = 14;
+        context.fillStyle = color;
+
+        context.fillRect(
+          progressBar.x,
+          progressBar.y,
+          progressBar.w * state.percentage / 100,
+          Math.max(5, progressBar.h)
+        );
+
+        context.restore();
+
+        exportText(
+          context,
+          state.percentage.toFixed(1) + '%',
+          progressBar.x + progressBar.w,
+          progressBar.y +
+            progressBar.h +
+            nameSize * .68,
+          nameSize * .78,
+          '#ffffff',
+          '700',
+          'right'
+        );
+
+        if (
+          winner?.member === member &&
+          state.seconds > 0
+        ) {
+          exportText(
+            context,
+            '♕',
+            Math.max(
+              25,
+              avatar.x - nameSize * .85
+            ),
+            centerY,
+            nameSize * 1.7,
+            '#ffffff'
+          );
+        }
+      }
+    }
+  }
+
+  // ==========================================
+  // FRAME AND IMAGE PROCESSING
+  // ==========================================
+
+  function exportPNG(canvas) {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(
+        blob => {
+          if (!blob) {
+            reject(new Error('Cannot render PNG frame.'));
+            return;
+          }
+
+          blob.arrayBuffer().then(buffer => {
+            resolve(new Uint8Array(buffer));
+          }).catch(reject);
+        },
+        'image/png'
+      );
+    });
+  }
+
+  async function exportPhotos() {
+    const images = new Map();
+
+    await Promise.all(
+      members.map(async member => {
+        if (!member.photoURL) {
+          images.set(member, null);
+          return;
+        }
+
+        const image = new Image();
+        image.src = member.photoURL;
+
+        try {
+          await image.decode();
+          images.set(member, image);
+        } catch {
+          images.set(member, null);
+        }
+      })
+    );
+
+    return images;
+  }
+
+  function exportGeometry() {
+    const portrait =
+      studio.dataset.visualMode === 'classic';
+
+    const width = portrait ? 1080 : 1920;
+    const height = portrait ? 1920 : 1080;
+
+    const previewRect =
+      filmPreview.getBoundingClientRect();
+
+    if (
+      previewRect.width < 1 ||
+      previewRect.height < 1
+    ) {
+      throw new Error('Preview is not visible.');
+    }
+
+    return {
+      width,
+      height,
+      previewRect,
+      sx: width / previewRect.width,
+      sy: height / previewRect.height,
+      mode: portrait ? 'classic' : 'visual'
+    };
+  }
+
+  // ==========================================
+  // LOAD FFMPEG WASM
+  // ==========================================
+
+  async function exportLoadEncoder() {
+    if (exportEncoder) {
+      return exportEncoder;
+    }
+
+    exportStatus(
+      'Loading FFmpeg encoder (~30 MB). Please wait...',
+      1
+    );
+
+    const base = 'https://cdn.jsdelivr.net/npm/';
+
+    if (!window.FFmpegWASM?.FFmpeg) {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+
+        script.src =
+          base +
+          '@ffmpeg/ffmpeg@0.12.15/dist/umd/ffmpeg.js';
+
+        script.onload = resolve;
+
+        script.onerror = () => reject(
+          new Error(
+            'Cannot download the encoder. Check your connection.'
+          )
+        );
+
+        document.head.append(script);
+      });
+    }
+
+    const urls = [];
+
+    async function blobURL(url, type) {
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(
+          'Could not download FFmpeg component (' +
+          response.status +
+          ').'
+        );
+      }
+
+      const objectURL = URL.createObjectURL(
+        new Blob(
+          [await response.arrayBuffer()],
+          { type }
+        )
+      );
+
+      urls.push(objectURL);
+
+      return objectURL;
+    }
+
+    const engine = new window.FFmpegWASM.FFmpeg();
+
+    try {
+      const worker = await blobURL(
+        base +
+          '@ffmpeg/ffmpeg@0.12.15/dist/umd/814.ffmpeg.js',
+        'text/javascript'
+      );
+
+      const core = await blobURL(
+        base +
+          '@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.js',
+        'text/javascript'
+      );
+
+      const wasm = await blobURL(
+        base +
+          '@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.wasm',
+        'application/wasm'
+      );
+
+      await engine.load({
+        classWorkerURL: worker,
+        coreURL: core,
+        wasmURL: wasm
+      });
+
+      exportEncoder = engine;
+
+      return engine;
+    } finally {
+      urls.forEach(url => URL.revokeObjectURL(url));
+    }
+  }
+
+  // ==========================================
+  // TRANSPARENT WEBM ENCODING
+  // ==========================================
+
+  async function exportAlphaWebM() {
+    if (exportBusy || !members.length) {
+      return;
+    }
+
+    if (isLocked()) {
+      exportStatus('Finish recording before exporting.');
+      return;
+    }
+
+    const short = exportShort.checked;
+
+    const hasTimeline =
+      recording === 'finished' &&
+      recordedLines.length > 0;
+
+    if (!short && !hasTimeline) {
+      exportStatus(
+        'For Full Export, record an MP3 and click ' +
+        'Finish Recording first. ' +
+        'You can use Short Export without a recording.'
+      );
+
+      return;
+    }
+
+    exportBusy = true;
+    exportBegin.disabled = true;
+
+    const total = short
+      ? 5
+      : (
+          musicReady &&
+          Number.isFinite(audio.duration)
+        )
+        ? audio.duration
+        : Math.max(
+            5,
+            ...recordedLines.map(line => line.end || 0)
+          );
+
+    const fps = 24;
+
+    const count = Math.max(
+      1,
+      Math.ceil(total * fps)
+    );
+
+    // Encode three-second segments to limit memory usage.
+
+    const chunkLength = 72;
+
+    const snapshot = members.map(member => ({
+      seconds: member.totalSeconds,
+      active: member.previewStarted !== null
+    }));
+
+    let engine = null;
+    let successful = false;
+
+    try {
+      const geometry = exportGeometry();
+
+      const images = await exportPhotos();
+
+      const canvas = document.createElement('canvas');
+
+      canvas.width = geometry.width;
+      canvas.height = geometry.height;
+
+      const context = canvas.getContext('2d', {
+        alpha: true,
+        willReadFrequently: false
+      });
+
+      if (!context) {
+        throw new Error(
+          'Cannot create a transparent canvas.'
+        );
+      }
+
+      exportRender(
+        context,
+        0,
+        geometry,
+        images,
+        hasTimeline,
+        snapshot,
+        false
+      );
+
+      // Check that the canvas itself has a transparent corner.
+
+      if (
+        context.getImageData(0, 0, 1, 1).data[3] !== 0
+      ) {
+        throw new Error(
+          'Canvas background is not transparent.'
+        );
+      }
+
+      engine = await exportLoadEncoder();
+
+      const segmentNames = [];
+
+      for (
+        let first = 0;
+        first < count;
+        first += chunkLength
+      ) {
+        const batch = Math.min(
+          chunkLength,
+          count - first
+        );
+
+        const segmentName =
+          'part' +
+          String(segmentNames.length).padStart(3, '0') +
+          '.webm';
+
+        const sourceNames = [];
+
+        for (let j = 0; j < batch; j++) {
+          const time = (first + j) / fps;
+
+          exportRender(
+            context,
+            time,
+            geometry,
+            images,
+            hasTimeline,
+            snapshot,
+            hasTimeline && time >= total - 1
+          );
+
+          const name =
+            'frame' +
+            String(j).padStart(4, '0') +
+            '.png';
+
+          const bytes = await exportPNG(canvas);
+
+          await engine.writeFile(name, bytes);
+
+          sourceNames.push(name);
+
+          if (j % 6 === 0) {
+            exportStatus(
+              'Rendering transparent frames: ' +
+              (first + j + 1) +
+              ' / ' +
+              count,
+              5 + 75 * (first + j + 1) / count
+            );
+
+            await new Promise(requestAnimationFrame);
+          }
+        }
+
+        exportStatus(
+          'Encoding VP9 alpha segment ' +
+          (segmentNames.length + 1) +
+          '...',
+          5 + 75 * (first + batch) / count
+        );
+
+        const code = await engine.exec([
+          '-framerate',
+          String(fps),
+
+          '-start_number',
+          '0',
+
+          '-i',
+          'frame%04d.png',
+
+          '-frames:v',
+          String(batch),
+
+          '-an',
+
+          '-c:v',
+          'libvpx-vp9',
+
+          '-pix_fmt',
+          'yuva420p',
+
+          '-auto-alt-ref',
+          '0',
+
+          '-b:v',
+          '0',
+
+          '-crf',
+          '24',
+
+          '-deadline',
+          'realtime',
+
+          '-cpu-used',
+          '6',
+
+          '-metadata:s:v:0',
+          'alpha_mode=1',
+
+          segmentName
+        ]);
+
+        if (code !== 0) {
+          throw new Error(
+            'Encoder failed while creating a transparent video segment.'
+          );
+        }
+
+        for (const name of sourceNames) {
+          await engine.deleteFile(name);
+        }
+
+        segmentNames.push(segmentName);
+      }
+
+      let outputName = segmentNames[0];
+
+      if (segmentNames.length > 1) {
+        exportStatus(
+          'Combining transparent video segments...',
+          92
+        );
+
+        const manifest = segmentNames
+          .map(name => `file '${name}'`)
+          .join('\n') + '\n';
+
+        await engine.writeFile(
+          'segments.txt',
+          new TextEncoder().encode(manifest)
+        );
+
+        const result = await engine.exec([
+          '-f',
+          'concat',
+
+          '-safe',
+          '0',
+
+          '-i',
+          'segments.txt',
+
+          '-c',
+          'copy',
+
+          'whole.webm'
+        ]);
+
+        if (result !== 0) {
+          throw new Error(
+            'Could not combine video segments.'
+          );
+        }
+
+        outputName = 'whole.webm';
+      }
+
+      // ==========================================
+      // DOWNLOAD FINAL FILE
+      // ==========================================
+
+      const raw = await engine.readFile(outputName);
+
+      const blob = new Blob(
+        [raw],
+        { type: 'video/webm' }
+      );
+
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+
+      link.href = url;
+
+      link.download =
+        'LDS_' +
+        (
+          short
+            ? 'ALPHA_TEST_5s'
+            : 'TRANSPARENT_FULL'
+        ) +
+        '.webm';
+
+      document.body.append(link);
+
+      link.click();
+      link.remove();
+
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 60000);
+
+      // Clean temporary files from FFmpeg's virtual filesystem.
+
+      for (const name of segmentNames) {
+        await engine.deleteFile(name);
+      }
+
+      if (outputName === 'whole.webm') {
+        await engine.deleteFile('whole.webm');
+        await engine.deleteFile('segments.txt');
+      }
+
+      successful = true;
+
+      exportStatus(
+        'WebM exported! Test transparency in Clipchamp or your editor.',
+        100
+      );
+
+    } catch (error) {
+      exportStatus(
+        'Export failed: ' +
+        (error?.message || String(error)) +
+        '\nYour members and recorded lines were not changed.'
+      );
+
+      console.error(
+        'LDS transparent export:',
+        error
+      );
+
+    } finally {
+      exportBusy = false;
+      exportBegin.disabled = false;
+
+      if (!successful) {
+        exportProgress.value = 0;
+      }
+    }
+  }
+
+  exportBegin.addEventListener(
+    'click',
+    exportAlphaWebM
+  );
