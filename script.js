@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', () => {
   const $ = id => document.getElementById(id);
 
@@ -64,6 +63,36 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   addCSS(`
+    /* Navigation and test controls */
+    #return-to-selection {
+      display: block;
+      margin: 0 0 14px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: white;
+      background: #292638;
+      border: 1px solid var(--accent, #ff80c8);
+      border-radius: 9px;
+    }
+
+    #reset-live-preview {
+      display: block;
+      width: 100%;
+      padding: 10px 8px;
+      font-size: 12px;
+      color: white;
+      background: #51405a;
+      border: 1px solid var(--accent, #ff80c8);
+      border-radius: 9px;
+      margin-bottom: 10px;
+    }
+
+    #return-to-selection:disabled,
+    #reset-live-preview:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
     .member-card[role=button] {
       cursor: pointer;
       border: 1px solid transparent;
@@ -538,6 +567,9 @@ document.addEventListener('DOMContentLoaded', () => {
       photoURL: data.photoURL || null,
       lines: [],
       activeLine: null,
+      // Separate, temporary keyboard-test stopwatch (not MP3 lines).
+      previewSeconds: 0,
+      previewStarted: null,
       totalSeconds: 0,
       percentage: 0,
       classicUI: null,
@@ -580,6 +612,30 @@ document.addEventListener('DOMContentLoaded', () => {
     studio.hidden = false;
 
     requestAnimationFrame(layoutVisual);
+    window.scrollTo(0, 0);
+  });
+
+  // ==========================================
+  // BACK TO SELECTION
+  // ==========================================
+
+  const backToSelection = document.createElement('button');
+  backToSelection.id = 'return-to-selection';
+  backToSelection.type = 'button';
+  backToSelection.textContent = '← Back to Selection';
+  studio.querySelector('.studio-header').prepend(backToSelection);
+
+  backToSelection.addEventListener('click', () => {
+    if (isLocked()) return;
+
+    // Stop the practice stopwatch while the welcome screen is shown.
+    freezePreview();
+    audio.pause();
+    updateResults();
+    setStatus();
+
+    studio.hidden = true;
+    welcome.hidden = false;
     window.scrollTo(0, 0);
   });
 
@@ -823,9 +879,9 @@ document.addEventListener('DOMContentLoaded', () => {
         Math.max(0, Math.min(100, member.percentage)) + '%';
 
       const singing =
-        recording === 'recording' &&
-        member.activeLine &&
-        !audio.paused;
+        (recording === 'recording' &&
+          !!member.activeLine && !audio.paused) ||
+        (recording === 'idle' && member.previewStarted !== null);
 
       ui.photo.style.boxShadow = singing
         ? `0 0 8px ${member.color},0 0 17px ${member.color}`
@@ -1071,9 +1127,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       ui.node.classList.toggle(
         'is-singing',
-        recording === 'recording' &&
-        !!member.activeLine &&
-        !audio.paused
+        (recording === 'recording' &&
+          !!member.activeLine && !audio.paused) ||
+        (recording === 'idle' && member.previewStarted !== null)
       );
     });
   }
@@ -1542,6 +1598,74 @@ document.addEventListener('DOMContentLoaded', () => {
     recordingPanel
   );
 
+  // Right-side button (falls back to recording panel on older HTML).
+  const previewResetButton = document.createElement('button');
+  previewResetButton.id = 'reset-live-preview';
+  previewResetButton.type = 'button';
+  previewResetButton.textContent = '↺ Reset Preview';
+  const sideTools = $('studio-side-tools');
+  if (sideTools && restartButton.parentElement === sideTools) {
+    restartButton.before(previewResetButton);
+  } else {
+    recordingPanel.append(previewResetButton);
+  }
+
+  previewResetButton.addEventListener('click', () => {
+    if (recording !== 'idle') return;
+    resetPreview();
+  });
+
+  // Practising uses performance.now(), never the MP3 timeline.
+  function previewRunning() {
+    return recording === 'idle' &&
+      members.some(member => member.previewStarted !== null);
+  }
+
+  function freezePreview() {
+    const now = performance.now();
+    members.forEach(member => {
+      if (member.previewStarted === null) return;
+      member.previewSeconds += Math.max(
+        0, (now - member.previewStarted) / 1000
+      );
+      member.previewStarted = null;
+    });
+    // The normal MP3 timer must be stopped too when leaving the studio.
+    stopTimer();
+  }
+
+  function clearPreviewData() {
+    members.forEach(member => {
+      member.previewSeconds = 0;
+      member.previewStarted = null;
+    });
+  }
+
+  function resetPreview() {
+    stopTimer();
+    clearPreviewData();
+    updateResults();
+    setButtons();
+    setStatus();
+  }
+
+  function togglePreview(member) {
+    if (recording !== 'idle') return;
+    const now = performance.now();
+    if (member.previewStarted === null) {
+      member.previewStarted = now;
+    } else {
+      member.previewSeconds += Math.max(
+        0, (now - member.previewStarted) / 1000
+      );
+      member.previewStarted = null;
+    }
+    updateResults();
+    if (previewRunning()) startTimer();
+    else stopTimer();
+    setStatus();
+  }
+
   function setStatus(value) {
     if (value) {
       status.textContent = value;
@@ -1549,9 +1673,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (recording === 'idle') {
-      status.textContent = musicReady
-        ? 'Ready! Press Start Recording.'
-        : 'Upload an MP3 to begin.';
+      const active = members.filter(member =>
+        member.previewStarted !== null
+      );
+      status.textContent = active.length
+        ? 'LIVE PREVIEW: ' + active.map(member => member.name).join(', ') +
+          ' — press the same key to stop.'
+        : musicReady
+          ? 'Press a member key to test, or Start Recording.'
+          : 'Press a member key to test. No MP3 needed!';
       return;
     }
 
@@ -1596,7 +1726,9 @@ document.addEventListener('DOMContentLoaded', () => {
       !musicReady ||
       recording === 'awaitingFinish';
 
-    restartButton.disabled = !musicReady;
+    restartButton.disabled = !musicReady && members.length === 0;
+    previewResetButton.disabled = recording !== 'idle' || members.length === 0;
+    backToSelection.disabled = isLocked();
 
     seek.disabled =
       !musicReady ||
@@ -1618,19 +1750,23 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateResults() {
     let total = 0;
     const now = audio.currentTime || 0;
+    const clockNow = performance.now();
 
     members.forEach(member => {
-      member.totalSeconds = member.lines.reduce(
-        (sum, line) => {
-          const end = line.end === null
-            ? now
-            : line.end;
-
-          return sum + Math.max(0, end - line.start);
-        },
-        0
-      );
-
+      if (recording === 'idle') {
+        // Practice time is independent of audio and cannot affect saved lines.
+        const extra = member.previewStarted === null ? 0 :
+          Math.max(0, (clockNow - member.previewStarted) / 1000);
+        member.totalSeconds = member.previewSeconds + extra;
+      } else {
+        member.totalSeconds = member.lines.reduce(
+          (sum, line) => {
+            const end = line.end === null ? now : line.end;
+            return sum + Math.max(0, end - line.start);
+          },
+          0
+        );
+      }
       total += member.totalSeconds;
     });
 
@@ -1656,20 +1792,16 @@ document.addEventListener('DOMContentLoaded', () => {
     frame = null;
     updateResults();
 
-    if (
-      recording === 'recording' &&
-      !audio.paused
-    ) {
+    if (previewRunning() ||
+        (recording === 'recording' && !audio.paused)) {
       frame = requestAnimationFrame(tick);
     }
   }
 
   function startTimer() {
-    if (
-      frame === null &&
-      recording === 'recording' &&
-      !audio.paused
-    ) {
+    if (frame === null &&
+        (previewRunning() ||
+         (recording === 'recording' && !audio.paused))) {
       frame = requestAnimationFrame(tick);
     }
   }
@@ -1718,6 +1850,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function resetRecording() {
     stopTimer();
+    clearPreviewData();
 
     recording = 'idle';
     recordedLines.length = 0;
@@ -1736,10 +1869,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function restartAll() {
-    if (!musicReady) return;
-
     audio.pause();
-    audio.currentTime = 0;
+    if (musicReady) audio.currentTime = 0;
 
     resetRecording();
     progress();
@@ -1762,6 +1893,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     musicError.hidden = true;
+    // A real recording always starts at zero, without practice results.
+    stopTimer();
+    clearPreviewData();
+    updateResults();
     recording = 'recording';
     setButtons();
     start.blur();
@@ -1927,6 +2062,8 @@ document.addEventListener('DOMContentLoaded', () => {
     updateResults();
     playLabel();
     setStatus();
+    // Preview must keep counting even if MP3 playback is paused.
+    if (previewRunning()) startTimer();
   });
 
   audio.addEventListener('ended', () => {
@@ -3796,7 +3933,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    if (recording !== 'recording') return;
+    if (recording !== 'recording' && recording !== 'idle') return;
 
     const key = event.key.toUpperCase();
 
@@ -3808,7 +3945,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (member) {
       event.preventDefault();
-      toggleLine(member);
+      if (recording === 'idle') togglePreview(member);
+      else toggleLine(member);
     }
   });
 
