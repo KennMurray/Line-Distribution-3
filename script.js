@@ -601,6 +601,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  
   function positionCopy(position) {
     if (
       !position ||
@@ -613,7 +614,11 @@ document.addEventListener('DOMContentLoaded', () => {
     return {
       x: Math.max(0, Math.min(100, position.x)),
       y: Math.max(0, Math.min(100, position.y)),
-      custom: !!position.custom
+      custom: !!position.custom,
+      scale: Math.max(
+        0.4,
+        Math.min(1.8, Number(position.scale) || 1)
+      )
     };
   }
 
@@ -957,39 +962,50 @@ document.addEventListener('DOMContentLoaded', () => {
     return 5;
   }
 
+ 
   function fitVisual(member) {
     if (!member.visualUI || !member.visualPosition) {
       return;
     }
 
     const rect = visualStage.getBoundingClientRect();
-
     if (!rect.width || !rect.height) return;
 
     const node = member.visualUI.node;
+    const position = member.visualPosition;
+
+    const scale = Math.max(
+      0.4,
+      Math.min(1.8, Number(position.scale) || 1)
+    );
+
+    position.scale = scale;
 
     const paddingX = Math.min(
       48,
-      node.offsetWidth / rect.width * 50
+      node.offsetWidth * scale / rect.width * 50
     );
 
     const paddingY = Math.min(
       48,
-      node.offsetHeight / rect.height * 50
+      node.offsetHeight * scale / rect.height * 50
     );
 
-    member.visualPosition.x = Math.max(
+    position.x = Math.max(
       paddingX,
-      Math.min(100 - paddingX, member.visualPosition.x)
+      Math.min(100 - paddingX, position.x)
     );
 
-    member.visualPosition.y = Math.max(
+    position.y = Math.max(
       paddingY,
-      Math.min(100 - paddingY, member.visualPosition.y)
+      Math.min(100 - paddingY, position.y)
     );
 
-    node.style.left = member.visualPosition.x + '%';
-    node.style.top = member.visualPosition.y + '%';
+    node.style.left = position.x + '%';
+    node.style.top = position.y + '%';
+
+    node.style.transform =
+      `translate(-50%, -50%) scale(${scale})`;
   }
 
   function layoutVisual() {
@@ -1036,95 +1052,319 @@ document.addEventListener('DOMContentLoaded', () => {
         member.visualPosition = {
           x: (column + 1) / (inRow + 1) * 100,
           y: (row + .5) / rows * 100,
-          custom: false
+          custom: false,
+          scale: member.visualPosition?.scale || 1
         };
+
       }
 
       fitVisual(member);
     });
   }
 
+ 
+  // ==========================================
+  // VISUAL ZOOM AND SMART ALIGNMENT
+  // ==========================================
+
+  const snapVertical = document.createElement('div');
+  const snapHorizontal = document.createElement('div');
+
+  [snapVertical, snapHorizontal].forEach(guide => {
+    guide.style.position = 'absolute';
+    guide.style.background = 'rgba(255, 180, 230, .95)';
+    guide.style.boxShadow = '0 0 5px #ff80c8';
+    guide.style.pointerEvents = 'none';
+    guide.style.zIndex = '100';
+    guide.style.display = 'none';
+    visualStage.appendChild(guide);
+  });
+
+  snapVertical.style.top = '0';
+  snapVertical.style.bottom = '0';
+  snapVertical.style.width = '1px';
+
+  snapHorizontal.style.left = '0';
+  snapHorizontal.style.right = '0';
+  snapHorizontal.style.height = '1px';
+
+  function hideSnapGuides() {
+    snapVertical.style.display = 'none';
+    snapHorizontal.style.display = 'none';
+  }
+
+  function snapVisual(member, x, y) {
+    const rect = visualStage.getBoundingClientRect();
+
+    if (!rect.width || !rect.height) {
+      return { x, y };
+    }
+
+    const thresholdX = 9 / rect.width * 100;
+    const thresholdY = 9 / rect.height * 100;
+
+    const targetsX = [50];
+    const targetsY = [50];
+
+    members.forEach(other => {
+      if (other === member || !other.visualPosition) return;
+
+      targetsX.push(other.visualPosition.x);
+      targetsY.push(other.visualPosition.y);
+    });
+
+    let resultX = x;
+    let resultY = y;
+    let bestX = thresholdX;
+    let bestY = thresholdY;
+    let matchedX = false;
+    let matchedY = false;
+
+    targetsX.forEach(target => {
+      const distance = Math.abs(x - target);
+
+      if (distance <= bestX) {
+        bestX = distance;
+        resultX = target;
+        matchedX = true;
+      }
+    });
+
+    targetsY.forEach(target => {
+      const distance = Math.abs(y - target);
+
+      if (distance <= bestY) {
+        bestY = distance;
+        resultY = target;
+        matchedY = true;
+      }
+    });
+
+    snapVertical.style.display =
+      matchedX ? 'block' : 'none';
+
+    snapHorizontal.style.display =
+      matchedY ? 'block' : 'none';
+
+    if (matchedX) {
+      snapVertical.style.left = resultX + '%';
+    }
+
+    if (matchedY) {
+      snapHorizontal.style.top = resultY + '%';
+    }
+
+    return {
+      x: resultX,
+      y: resultY
+    };
+  }
+
   function dragVisual(member, node) {
+    const pointers = new Map();
+
     let drag = null;
+    let pinch = null;
+    let usedMultiTouch = false;
+
+    function setScale(value) {
+      if (isLocked()) return;
+
+      member.visualPosition.scale = Math.max(
+        0.4,
+        Math.min(1.8, value)
+      );
+
+      member.visualPosition.custom = true;
+      fitVisual(member);
+    }
+
+    node.addEventListener('wheel', event => {
+      if (isLocked()) return;
+
+      event.preventDefault();
+
+      const current =
+        member.visualPosition?.scale || 1;
+
+      const factor =
+        event.deltaY < 0 ? 1.06 : 1 / 1.06;
+
+      setScale(current * factor);
+    }, { passive: false });
 
     node.addEventListener('pointerdown', event => {
+      if (isLocked()) return;
+
       if (
-        (isLocked() && event.pointerType === 'mouse') ||
-        (
-          event.pointerType === 'mouse' &&
-          event.button !== 0
-        )
+        event.pointerType === 'mouse' &&
+        event.button !== 0
       ) {
         return;
       }
 
-      const rect = visualStage.getBoundingClientRect();
-      if (!rect.width || !rect.height) return;
+      if (!member.visualPosition) return;
 
       event.preventDefault();
 
-      drag = {
-        id: event.pointerId,
+      pointers.set(event.pointerId, {
         x: event.clientX,
-        y: event.clientY,
-        px: member.visualPosition.x,
-        py: member.visualPosition.y,
-        moved: false,
-        pointerType: event.pointerType
-      };
+        y: event.clientY
+      });
 
-      node.classList.add('is-dragging');
       node.setPointerCapture(event.pointerId);
+
+      if (pointers.size === 1) {
+        usedMultiTouch = false;
+
+        drag = {
+          id: event.pointerId,
+          x: event.clientX,
+          y: event.clientY,
+          px: member.visualPosition.x,
+          py: member.visualPosition.y,
+          moved: false
+        };
+
+        node.classList.add('is-dragging');
+      }
+
+      if (pointers.size === 2) {
+        usedMultiTouch = true;
+        hideSnapGuides();
+
+        const [a, b] = [...pointers.values()];
+
+        pinch = {
+          distance: Math.hypot(
+            a.x - b.x,
+            a.y - b.y
+          ),
+          scale: member.visualPosition.scale || 1
+        };
+      }
     });
 
     node.addEventListener('pointermove', event => {
-      if (!drag || event.pointerId !== drag.id) return;
+      if (!pointers.has(event.pointerId)) return;
 
-      if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) > 10) {
+      pointers.set(event.pointerId, {
+        x: event.clientX,
+        y: event.clientY
+      });
+
+      if (pointers.size >= 2 && pinch) {
+        const [a, b] = [...pointers.values()];
+
+        const distance = Math.hypot(
+          a.x - b.x,
+          a.y - b.y
+        );
+
+        if (pinch.distance > 0) {
+          setScale(
+            pinch.scale * distance / pinch.distance
+          );
+        }
+
+        return;
+      }
+
+      if (
+        !drag ||
+        drag.id !== event.pointerId ||
+        usedMultiTouch
+      ) {
+        return;
+      }
+
+      const distance = Math.hypot(
+        event.clientX - drag.x,
+        event.clientY - drag.y
+      );
+
+      if (distance > 10) {
         drag.moved = true;
       }
-      if (isLocked() || !drag.moved) return;
+
+      if (!drag.moved) return;
 
       const rect = visualStage.getBoundingClientRect();
 
-      member.visualPosition = {
-        x: drag.px +
-          (event.clientX - drag.x) / rect.width * 100,
-        y: drag.py +
-          (event.clientY - drag.y) / rect.height * 100,
-        custom: true
-      };
+      if (!rect.width || !rect.height) return;
+
+      const proposedX = drag.px +
+        (event.clientX - drag.x) /
+        rect.width * 100;
+
+      const proposedY = drag.py +
+        (event.clientY - drag.y) /
+        rect.height * 100;
+
+      const snapped = snapVisual(
+        member,
+        proposedX,
+        proposedY
+      );
+
+      member.visualPosition.x = snapped.x;
+      member.visualPosition.y = snapped.y;
+      member.visualPosition.custom = true;
 
       fitVisual(member);
     });
 
-    const stop = event => {
-      if (!drag || drag.id !== event.pointerId) return;
+    function stop(event) {
+      if (!pointers.has(event.pointerId)) return;
 
-      const tapped = !drag.moved &&
-        Math.hypot(event.clientX - drag.x, event.clientY - drag.y) <= 10;
-      const touchTap = tapped &&
-        (drag.pointerType === 'touch' || drag.pointerType === 'pen');
-      if (event.type === 'pointerup' && touchTap) {
-        activateMember(member);
-      }
+      const wasTap =
+        !usedMultiTouch &&
+        drag &&
+        drag.id === event.pointerId &&
+        !drag.moved &&
+        event.type === 'pointerup';
 
-      drag = null;
-      node.classList.remove('is-dragging');
+      pointers.delete(event.pointerId);
 
       if (node.hasPointerCapture(event.pointerId)) {
         node.releasePointerCapture(event.pointerId);
       }
-    };
+
+      if (pointers.size < 2) {
+        pinch = null;
+      }
+
+      if (pointers.size === 0) {
+        drag = null;
+        node.classList.remove('is-dragging');
+        hideSnapGuides();
+      }
+
+      if (wasTap) {
+        if (recording === 'idle') {
+          togglePreview(member);
+        } else if (recording === 'recording') {
+          toggleLine(member);
+        }
+      }
+    }
 
     node.addEventListener('pointerup', stop);
     node.addEventListener('pointercancel', stop);
 
-    node.addEventListener('lostpointercapture', () => {
-      drag = null;
-      node.classList.remove('is-dragging');
+    node.addEventListener('lostpointercapture', event => {
+      pointers.delete(event.pointerId);
+
+      if (pointers.size === 0) {
+        drag = null;
+        pinch = null;
+        node.classList.remove('is-dragging');
+        hideSnapGuides();
+      }
     });
   }
+
+ 
 
   function visualCard(member) {
     const node = visualTemplate.content
@@ -5190,6 +5430,17 @@ document.addEventListener('DOMContentLoaded', () => {
           stageRect.height * position.y / 100
         ) * sy;
 
+       
+        const memberScale = Math.max(
+          0.4,
+          Math.min(1.8, Number(position.scale) || 1)
+        );
+
+        context.save();
+        context.translate(centerX, centerY);
+        context.scale(memberScale, memberScale);
+        context.translate(-centerX, -centerY);
+
         const outerRadius =
           photoSize *
           stageScale *
@@ -5319,6 +5570,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
           context.restore();
         }
+       
+        context.restore();
+
       }
     }
 
