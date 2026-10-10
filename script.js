@@ -5895,3 +5895,441 @@ document.addEventListener('DOMContentLoaded', () => {
   );
 
 });
+
+
+  // =======================================================
+  // MEDIARECORDER EXPORT
+  // Reuses existing exportRender() and exportGeometry().
+  // =======================================================
+
+  const nativeExportButton = exportBegin.cloneNode(true);
+  exportBegin.replaceWith(nativeExportButton);
+
+  const mp4Types = [
+    'video/mp4;codecs="avc1.42E01E,mp4a.40.2"',
+    'video/mp4;codecs="avc1.42E01E"',
+    'video/mp4'
+  ];
+
+  const webmTypes = [
+    'video/webm;codecs=vp9',
+    'video/webm;codecs=vp8',
+    'video/webm'
+  ];
+
+  const supportedType = types =>
+    typeof MediaRecorder !== 'undefined'
+      ? types.find(type => MediaRecorder.isTypeSupported(type)) || ''
+      : '';
+
+  const supportedMP4 = supportedType(mp4Types);
+  const supportedWebM = supportedType(webmTypes);
+
+  const formatInputs = [
+    ...exportModal.querySelectorAll(
+      'input[name="lds-export-format"]'
+    )
+  ];
+
+  const mp4Input = formatInputs.find(
+    input => input.value === 'mp4'
+  );
+
+  if (mp4Input) {
+    mp4Input.disabled = !supportedMP4;
+
+    mp4Input.closest('label').style.opacity =
+      supportedMP4 ? '1' : '.55';
+
+    mp4Input.closest('label')
+      .querySelector('strong').textContent =
+      supportedMP4
+        ? 'Standard MP4 — 1080p'
+        : 'Standard MP4 — Unsupported in this browser';
+  }
+
+  const chosenFormat = () =>
+    formatInputs.find(input => input.checked)?.value || 'webm';
+
+  const updateNativeButton = () => {
+    nativeExportButton.textContent =
+      chosenFormat() === 'mp4'
+        ? 'Export MP4'
+        : 'Export WebM';
+  };
+
+  formatInputs.forEach(input =>
+    input.addEventListener('change', updateNativeButton)
+  );
+
+  updateNativeButton();
+
+  nativeExportButton.addEventListener('click', async () => {
+    if (exportBusy || isLocked()) return;
+
+    if (!members.length) {
+      exportStatus('Add a member before exporting.');
+      return;
+    }
+
+    const format = chosenFormat();
+
+    const mimeType = format === 'mp4'
+      ? supportedMP4
+      : supportedWebM;
+
+    if (!mimeType) {
+      exportStatus(
+        'This browser cannot record the selected video format.'
+      );
+      return;
+    }
+
+    const hasTimeline =
+      recording === 'finished' &&
+      recordedLines.length > 0;
+
+    const short = exportShort.checked;
+
+    if (!short && !hasTimeline) {
+      exportStatus(
+        'Finish a recorded distribution before Full Export.'
+      );
+      return;
+    }
+
+    if (format === 'mp4' && !musicURL) {
+      exportStatus(
+        'Upload an MP3 to export MP4 with music.'
+      );
+      return;
+    }
+
+    const length = short
+      ? 5
+      : (
+          Number.isFinite(audio.duration) &&
+          audio.duration > 0
+        )
+        ? audio.duration
+        : Math.max(
+            5,
+            ...recordedLines.map(line => line.end || 0)
+          );
+
+    const snapshot = members.map(member => ({
+      seconds: member.totalSeconds,
+      active: member.previewStarted !== null
+    }));
+
+    let recorder = null;
+    let stream = null;
+    let animation = 0;
+    let soundContext = null;
+    let soundPlayer = null;
+    let backgroundPlayer = null;
+    let chunks = [];
+
+    exportBusy = true;
+    nativeExportButton.disabled = true;
+
+    exportStatus('Preparing video...', 2);
+
+    try {
+      const geometry = exportGeometry();
+      const images = await exportPhotos();
+
+      const overlay = document.createElement('canvas');
+
+      overlay.width = geometry.width;
+      overlay.height = geometry.height;
+
+      const overlayContext = overlay.getContext('2d', {
+        alpha: true
+      });
+
+      if (!overlayContext) {
+        throw new Error('Canvas is unavailable.');
+      }
+
+      // WebM uses a transparent canvas.
+      // MP4 uses a composited canvas with a background.
+
+      const movie = format === 'webm'
+        ? overlay
+        : document.createElement('canvas');
+
+      movie.width = geometry.width;
+      movie.height = geometry.height;
+
+      const movieContext = format === 'mp4'
+        ? movie.getContext('2d', { alpha: false })
+        : null;
+
+      if (
+        format === 'mp4' &&
+        filmSettings.source === 'video' &&
+        filmVideoURL
+      ) {
+        backgroundPlayer = document.createElement('video');
+
+        backgroundPlayer.src = filmVideoURL;
+        backgroundPlayer.muted = true;
+        backgroundPlayer.loop = true;
+        backgroundPlayer.playsInline = true;
+
+        await new Promise((resolve, reject) => {
+          backgroundPlayer.onloadeddata = resolve;
+
+          backgroundPlayer.onerror = () => reject(
+            new Error('Background video could not load.')
+          );
+
+          backgroundPlayer.load();
+        });
+      }
+
+      function drawBackground() {
+        const ctx = movieContext;
+        const w = movie.width;
+        const h = movie.height;
+
+        ctx.fillStyle = '#101018';
+        ctx.fillRect(0, 0, w, h);
+
+        const image =
+          filmSettings.source === 'image' &&
+          filmImage.complete &&
+          filmImage.naturalWidth
+            ? filmImage
+            : backgroundPlayer;
+
+        if (
+          image &&
+          (image.videoWidth || image.naturalWidth)
+        ) {
+          const iw =
+            image.videoWidth || image.naturalWidth;
+
+          const ih =
+            image.videoHeight || image.naturalHeight;
+
+          const scale = Math.max(
+            w / iw,
+            h / ih
+          );
+
+          const dw = iw * scale;
+          const dh = ih * scale;
+
+          ctx.save();
+
+          ctx.filter =
+            `blur(${filmSettings.blur * .32 * geometry.sx}px)`;
+
+          ctx.drawImage(
+            image,
+            (w - dw) / 2,
+            (h - dh) / 2,
+            dw,
+            dh
+          );
+
+          ctx.restore();
+        }
+
+        ctx.fillStyle =
+          `rgba(0,0,0,${filmSettings.darkness / 100})`;
+
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      function paint(time) {
+        exportRender(
+          overlayContext,
+          time,
+          geometry,
+          images,
+          hasTimeline,
+          snapshot,
+          hasTimeline && time >= length - 1
+        );
+
+        if (format === 'mp4') {
+          drawBackground();
+
+          movieContext.drawImage(
+            overlay,
+            0,
+            0
+          );
+        }
+      }
+
+      paint(0);
+
+      stream = movie.captureStream(30);
+
+      // MP4 audio is captured from a separate player,
+      // leaving the main studio music player untouched.
+
+      if (format === 'mp4') {
+        soundContext = new AudioContext();
+
+        const destination =
+          soundContext.createMediaStreamDestination();
+
+        soundPlayer = new Audio();
+        soundPlayer.src = musicURL;
+        soundPlayer.preload = 'auto';
+        soundPlayer.currentTime = 0;
+
+        const source =
+          soundContext.createMediaElementSource(soundPlayer);
+
+        source.connect(destination);
+
+        destination.stream
+          .getAudioTracks()
+          .forEach(track => stream.addTrack(track));
+
+        await soundContext.resume();
+      }
+
+      recorder = new MediaRecorder(stream, {
+        mimeType,
+        videoBitsPerSecond: 8000000
+      });
+
+      const finished = new Promise((resolve, reject) => {
+        recorder.ondataavailable = event => {
+          if (event.data?.size) {
+            chunks.push(event.data);
+          }
+        };
+
+        recorder.onerror = event => reject(
+          event.error ||
+          new Error('Video recording failed.')
+        );
+
+        recorder.onstop = resolve;
+      });
+
+      recorder.start(1000);
+
+      if (backgroundPlayer) {
+        await backgroundPlayer.play();
+      }
+
+      if (soundPlayer) {
+        await soundPlayer.play();
+      }
+
+      const startTime = performance.now();
+
+      await new Promise((resolve, reject) => {
+        function nextFrame() {
+          try {
+            const time = Math.min(
+              length,
+              (performance.now() - startTime) / 1000
+            );
+
+            paint(time);
+
+            exportStatus(
+              `Recording ${time.toFixed(1)} / ` +
+              `${length.toFixed(1)} seconds...`,
+              5 + 90 * time / length
+            );
+
+            if (time >= length) {
+              resolve();
+            } else {
+              animation =
+                requestAnimationFrame(nextFrame);
+            }
+          } catch (error) {
+            reject(error);
+          }
+        }
+
+        animation = requestAnimationFrame(nextFrame);
+      });
+
+      recorder.stop();
+
+      await finished;
+
+      if (!chunks.length) {
+        throw new Error(
+          'The recorder returned an empty video.'
+        );
+      }
+
+      const blob = new Blob(chunks, {
+        type: mimeType
+      });
+
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+
+      link.href = url;
+
+      link.download =
+        `LDS_${format === 'webm' ? 'TRANSPARENT' : 'FULL'}` +
+        `_${short ? '5s' : 'FULL'}.${format}`;
+
+      document.body.append(link);
+
+      link.click();
+      link.remove();
+
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 60000);
+
+      exportStatus(
+        format === 'webm'
+          ? 'WebM saved. Check transparency and neon glow ' +
+            'in Clipchamp. Alpha support depends on browser encoding.'
+          : 'MP4 saved with background and music.',
+        100
+      );
+
+    } catch (error) {
+      console.error(
+        'MediaRecorder export:',
+        error
+      );
+
+      exportStatus(
+        'Export failed: ' +
+        (error?.message || String(error))
+      );
+
+      if (recorder?.state === 'recording') {
+        recorder.stop();
+      }
+
+    } finally {
+      cancelAnimationFrame(animation);
+
+      soundPlayer?.pause();
+      backgroundPlayer?.pause();
+
+      stream?.getTracks().forEach(
+        track => track.stop()
+      );
+
+      if (soundContext) {
+        await soundContext.close().catch(() => {});
+      }
+
+      exportBusy = false;
+      nativeExportButton.disabled = false;
+    }
+  });
+
