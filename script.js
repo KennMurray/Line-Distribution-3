@@ -5874,7 +5874,7 @@ document.addEventListener('DOMContentLoaded', () => {
         '\nYour members and recorded lines were not changed.'
       );
 
-      console.error(
+            console.error(
         'LDS transparent export:',
         error
       );
@@ -5889,15 +5889,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-   exportBegin.addEventListener(
-    'click',
-    exportAlphaWebM
-  );
-
-});
-
-
-  // =======================================================
+   // =======================================================
   // MEDIARECORDER EXPORT
   // Reuses existing exportRender() and exportGeometry().
   // =======================================================
@@ -6328,8 +6320,8 @@ document.addEventListener('DOMContentLoaded', () => {
         await soundContext.close().catch(() => {});
       }
 
-      exportBusy = false;
+           exportBusy = false;
       nativeExportButton.disabled = false;
     }
   });
-
+});
