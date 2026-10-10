@@ -6623,4 +6623,5 @@ document.addEventListener('DOMContentLoaded', () => {
            exportBusy = false;
       nativeExportButton.disabled = false;
     }
-  });
+    });
+});
