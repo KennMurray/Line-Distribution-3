@@ -1,4 +1,5 @@
 
+ 
 document.addEventListener('DOMContentLoaded', () => {
   const $ = id => document.getElementById(id);
 
@@ -178,6 +179,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     .edit-member-form .cancel-member-button {
+      background: #383443;
+      color: white;
+    }
+
+    .edit-error {
+      color: #ff9b9b;
+      font-size: 13px;
+    }
+
+    #edit-member-title {
+      color: var(--accent);
+    }
+
+    /* VISUAL PREVIEW */
+
+    #studio-screen[data-visual-mode=visual] .preview {
+      aspect-ratio: 16 / 9;
+      background: #101018 !important;
+    }
+
+
       background: #383443;
       color: white;
     }
@@ -660,6 +682,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // A member can be added by touch without manually entering a shortcut.
+  memberShortcut.required = false;
+  memberShortcut.placeholder = 'Automatic (optional)';
+
   memberShortcut.addEventListener('keydown', event => {
     event.preventDefault();
     event.stopPropagation();
@@ -691,12 +717,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isLocked()) return;
 
     const name = memberName.value.trim();
+    const assignedKey = chosenKey || nextFreeMemberKey();
 
     if (
       members.length >= 20 ||
       !name ||
-      !chosenKey ||
-      validKey(chosenKey)
+      !assignedKey ||
+      validKey(assignedKey)
     ) {
       shortcutError.textContent = members.length >= 20
         ? 'Maximum 20 members.'
@@ -711,7 +738,7 @@ document.addEventListener('DOMContentLoaded', () => {
     members.push(newMember({
       name,
       color: memberColor.value,
-      shortcut: chosenKey,
+      shortcut: assignedKey,
       photoURL: photo ? URL.createObjectURL(photo) : null
     }));
 
@@ -773,6 +800,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const seconds = document.createElement('span');
     seconds.className = 'classic-seconds';
+
     seconds.textContent = '0.0s';
 
     top.append(name, seconds);
@@ -791,6 +819,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     info.append(top, progress, percent);
     row.append(crown, photo, info);
+
+    row.style.touchAction = 'manipulation';
+    row.style.cursor = 'pointer';
+    row.setAttribute('role', 'button');
+    row.tabIndex = 0;
+    row.setAttribute('aria-label', `Toggle timing for ${member.name}`);
+
+    row.addEventListener('click', event => {
+      // Ignore keyboard-synthesized clicks: keyboard shortcuts already work.
+      if (event.detail === 0) return;
+      activateMember(member);
+    });
+
+    row.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        event.stopPropagation();
+        activateMember(member);
+      }
+    });
 
     member.classicUI = {
       row,
@@ -1001,7 +1049,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     node.addEventListener('pointerdown', event => {
       if (
-        isLocked() ||
+        (isLocked() && event.pointerType === 'mouse') ||
         (
           event.pointerType === 'mouse' &&
           event.button !== 0
@@ -1020,7 +1068,9 @@ document.addEventListener('DOMContentLoaded', () => {
         x: event.clientX,
         y: event.clientY,
         px: member.visualPosition.x,
-        py: member.visualPosition.y
+        py: member.visualPosition.y,
+        moved: false,
+        pointerType: event.pointerType
       };
 
       node.classList.add('is-dragging');
@@ -1029,6 +1079,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     node.addEventListener('pointermove', event => {
       if (!drag || event.pointerId !== drag.id) return;
+
+      if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) > 10) {
+        drag.moved = true;
+      }
+      if (isLocked() || !drag.moved) return;
 
       const rect = visualStage.getBoundingClientRect();
 
@@ -1045,6 +1100,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const stop = event => {
       if (!drag || drag.id !== event.pointerId) return;
+
+      const tapped = !drag.moved &&
+        Math.hypot(event.clientX - drag.x, event.clientY - drag.y) <= 10;
+      const touchTap = tapped &&
+        (drag.pointerType === 'touch' || drag.pointerType === 'pen');
+      if (event.type === 'pointerup' && touchTap) {
+        activateMember(member);
+      }
 
       drag = null;
       node.classList.remove('is-dragging');
@@ -1138,6 +1201,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (window.ResizeObserver) {
     new ResizeObserver(layoutVisual).observe(visualStage);
   } else {
+
+  
     window.addEventListener('resize', layoutVisual);
   }
 
@@ -1244,6 +1309,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const editShortcut = $('edit-member-shortcut');
   const editError = $('edit-member-error');
   const editPreview = $('edit-photo-preview');
+  editShortcut.required = false;
+
 
   function closeEdit() {
     hide(editOverlay);
@@ -1331,10 +1398,214 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!editingMember || isLocked()) return;
 
     const name = editName.value.trim();
-    const error = validKey(editingKey, editingMember);
+    const newShortcut = editingKey || nextFreeMemberKey(editingMember);
+    const error = validKey(newShortcut, editingMember);
     const photo = editImage.files[0];
 
     if (
+
+      
+    window.addEventListener('resize', layoutVisual);
+  }
+
+  // ==========================================
+  // EDIT MEMBER WINDOW
+  // ==========================================
+
+  const editOverlay = document.createElement('div');
+
+  editOverlay.id = 'member-settings-modal';
+  editOverlay.className = 'modal-overlay';
+
+  editOverlay.innerHTML = `
+    <div class="modal-content"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="edit-member-title">
+
+      <button type="button"
+              class="close-modal"
+              id="close-edit-member">×</button>
+
+      <h2 id="edit-member-title">Edit Member</h2>
+
+      <form id="edit-member-form" class="edit-member-form">
+
+        <div id="edit-photo-preview"
+             class="photo-preview"></div>
+
+        <label for="edit-member-name">
+          Member Name
+        </label>
+
+        <input id="edit-member-name"
+               type="text"
+               maxlength="30"
+               required>
+
+        <label for="edit-member-color">
+          Member Color
+        </label>
+
+        <input id="edit-member-color" type="color">
+
+        <label for="edit-member-image">
+          Change Photo
+        </label>
+
+        <input id="edit-member-image"
+               type="file"
+               accept="image/*">
+
+        <p style="font-size:12px;color:#aaa5ba">
+          Leave empty to keep the current photo.
+        </p>
+
+        <label>
+          <input id="edit-remove-photo" type="checkbox">
+          Remove current photo
+        </label>
+
+        <label for="edit-member-shortcut">
+          Keyboard Shortcut
+        </label>
+
+        <input id="edit-member-shortcut"
+               class="edit-shortcut"
+               type="text"
+               readonly
+               required>
+
+        <p id="edit-member-error"
+           class="edit-error"
+           hidden></p>
+
+        <div class="edit-actions">
+
+          <button type="submit">
+            Save Changes
+          </button>
+
+          <button type="button"
+                  id="delete-member"
+                  class="delete-member-button">
+            Remove Member
+          </button>
+
+          <button type="button"
+                  id="cancel-edit-member"
+                  class="cancel-member-button">
+            Cancel
+          </button>
+
+        </div>
+      </form>
+    </div>
+  `;
+
+  studio.append(editOverlay);
+
+  const editName = $('edit-member-name');
+  const editColor = $('edit-member-color');
+  const editImage = $('edit-member-image');
+  const editShortcut = $('edit-member-shortcut');
+  const editError = $('edit-member-error');
+  const editPreview = $('edit-photo-preview');
+  editShortcut.required = false;
+
+
+  function closeEdit() {
+    hide(editOverlay);
+    editingMember = null;
+    editError.hidden = true;
+  }
+
+  function openEdit(member) {
+    if (isLocked()) {
+      setStatus('Finish recording before editing members.');
+      return;
+    }
+
+    editingMember = member;
+    editingKey = member.shortcut;
+
+    $('edit-member-form').reset();
+
+    editName.value = member.name;
+    editColor.value = member.color;
+    editShortcut.value = member.shortcut;
+
+    editPreview.replaceChildren();
+
+    editPreview.style.setProperty(
+      '--member-color',
+      member.color
+    );
+
+    if (member.photoURL) {
+      const image = document.createElement('img');
+      image.src = member.photoURL;
+      image.alt = member.name;
+      editPreview.append(image);
+    } else {
+      editPreview.textContent =
+        member.name.charAt(0).toUpperCase();
+    }
+
+    editError.hidden = true;
+    show(editOverlay);
+    editName.focus();
+  }
+
+  $('close-edit-member').addEventListener('click', closeEdit);
+  $('cancel-edit-member').addEventListener('click', closeEdit);
+
+  editOverlay.addEventListener('click', event => {
+    if (event.target === editOverlay) {
+      closeEdit();
+    }
+  });
+
+  editColor.addEventListener('input', () => {
+    editPreview.style.setProperty(
+      '--member-color',
+      editColor.value
+    );
+  });
+
+  editShortcut.addEventListener('keydown', event => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (event.key === 'Escape') {
+      closeEdit();
+      return;
+    }
+
+    const key = event.key.toUpperCase();
+    const error = validKey(key, editingMember);
+
+    editError.textContent = error;
+    editError.hidden = !error;
+
+    if (!error) {
+      editingKey = key;
+      editShortcut.value = key;
+    }
+  });
+
+  $('edit-member-form').addEventListener('submit', event => {
+    event.preventDefault();
+
+    if (!editingMember || isLocked()) return;
+
+    const name = editName.value.trim();
+    const newShortcut = editingKey || nextFreeMemberKey(editingMember);
+    const error = validKey(newShortcut, editingMember);
+    const photo = editImage.files[0];
+
+    if (
+
       !name ||
       error ||
       (photo && !photo.type.startsWith('image/'))
@@ -1357,10 +1628,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     member.name = name;
     member.color = editColor.value;
-    member.shortcut = editingKey;
+    member.shortcut = newShortcut;
 
     member.lines.forEach(line => {
-      line.memberShortcut = editingKey;
+      line.memberShortcut = newShortcut;
     });
 
     closeEdit();
@@ -1535,6 +1806,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     return minutes >= 60
       ? `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}:${remaining}`
+
       : `${minutes}:${remaining}`;
   }
 
@@ -1934,6 +2206,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setStatus();
     playLabel();
   });
+
 
   // ==========================================
   // MP3 EVENTS
@@ -2335,6 +2608,7 @@ document.addEventListener('DOMContentLoaded', () => {
   filmSettingsButton.id = 'open-film-settings';
   filmSettingsButton.type = 'button';
   filmSettingsButton.textContent = '🎬 Video Customization';
+
   const toolsTitle = filmUIHost.querySelector('h2');
   if (toolsTitle) toolsTitle.after(filmSettingsButton);
   else filmUIHost.prepend(filmSettingsButton);
@@ -2535,6 +2809,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       filmMessage('');
     }
+
   });
 
   filmBlurInput.addEventListener('input', () => {
@@ -2734,6 +3009,7 @@ document.addEventListener('DOMContentLoaded', () => {
           'files',
           action === 'read' ? 'readonly' : 'readwrite'
         );
+
 
         const store = transaction.objectStore('files');
 
@@ -2936,6 +3212,8 @@ document.addEventListener('DOMContentLoaded', () => {
             Custom Background Image
           </label>
 
+
+
           <p class="appearance-hint">
             JPG, PNG, WebP, GIF or AVIF, up to 20 MB.
           </p>
@@ -3134,6 +3412,7 @@ document.addEventListener('DOMContentLoaded', () => {
         savedBackgroundURL
       );
     }
+
 
     clearDraftImage();
     removeBackgroundImage = false;
@@ -3335,6 +3614,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch {
       appearanceSaving = false;
+
       appearanceSave.disabled = false;
 
       appearanceNotice.textContent =
@@ -3415,6 +3695,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const groupMemberImage = $('group-member-image');
 
   const groupMemberShortcut = $('group-member-shortcut');
+  groupMemberShortcut.required = false;
+  groupMemberShortcut.placeholder = 'Automatic (optional)';
 
   const groupMemberRemovePhoto =
     $('group-member-remove-photo');
@@ -3533,6 +3815,7 @@ document.addEventListener('DOMContentLoaded', () => {
             transaction.error ||
             new Error('Storage failed.')
           );
+
         };
 
         transaction.onabort = () => {
@@ -3733,6 +4016,8 @@ document.addEventListener('DOMContentLoaded', () => {
       );
     }
   });
+
+                          
 
   $('close-groups-modal').addEventListener(
     'click',
@@ -4070,10 +4355,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!name) return;
 
     if (!pendingGroupShortcut) {
-      groupMessage(
-        groupEditorStatus,
-        'Choose a keyboard shortcut first.'
-      );
+      pendingGroupShortcut = [...GROUP_KEYS].find(key =>
+        !draftGroupMembers.some((person, index) =>
+          index !== editingGroupMemberIndex && person.shortcut === key
+        )
+      ) || '';
+    }
+    if (!pendingGroupShortcut) {
+      groupMessage(groupEditorStatus, 'No free shortcuts remain.');
       return;
     }
 
@@ -4129,6 +4418,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       photo: file || (
         groupMemberRemovePhoto.checked
+
           ? null
           : previous?.photo || null
       ),
@@ -4330,6 +4620,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+  
     if (
       recordedLines.length > 0 &&
       !confirm(
@@ -4529,6 +4820,7 @@ document.addEventListener('DOMContentLoaded', () => {
         URL.revokeObjectURL(member.photoURL);
       }
     });
+
 
     clearDraftImage();
 
@@ -4730,6 +5022,7 @@ document.addEventListener('DOMContentLoaded', () => {
         Transparent overlays are exported without audio.
       </p>
 
+
       <progress
         id="export-progress"
         max="100"
@@ -4929,6 +5222,7 @@ document.addEventListener('DOMContentLoaded', () => {
         centerX - width / 2,
         centerY - height / 2,
         width,
+
         height
       );
     } else {
@@ -5129,6 +5423,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         context.arc(
           centerX,
+
           centerY,
           outerRadius,
           -Math.PI / 2,
@@ -5329,6 +5624,7 @@ document.addEventListener('DOMContentLoaded', () => {
         context.fillRect(
           progressBar.x,
           progressBar.y,
+
           progressBar.w,
           Math.max(5, progressBar.h)
         );
@@ -5530,6 +5826,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       exportStatus('Starting the FFmpeg encoder...', 3);
 
+
       await engine.load({
         classWorkerURL: workerURL,
         coreURL,
@@ -5729,6 +6026,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           '-frames:v',
           String(batch),
+
 
           '-an',
 
@@ -5930,6 +6228,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (mp4Input) {
     mp4Input.disabled = !supportedMP4;
 
+
     mp4Input.closest('label').style.opacity =
       supportedMP4 ? '1' : '.55';
 
@@ -6130,6 +6429,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ctx.restore();
         }
 
+
         ctx.fillStyle =
           `rgba(0,0,0,${filmSettings.darkness / 100})`;
 
@@ -6324,4 +6624,3 @@ document.addEventListener('DOMContentLoaded', () => {
       nativeExportButton.disabled = false;
     }
   });
-});
