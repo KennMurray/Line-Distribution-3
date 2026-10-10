@@ -387,6 +387,28 @@ html body.appearance-has-image {
   .mode-card, .start-creating-button { transition: none; }
 }
 
+
+.mode-description {
+  color: #aaa4b7; font-size: 14px; line-height: 1.6; margin: 0;
+}
+
+.mode-preview-note {
+  display: none;
+  margin-top: 10px;
+  color: #c9a7ef;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.mode-card:has(input[type="radio"]:checked) .mode-preview-note {
+  display: block;
+}
+
+.welcome-actions {
+  display: flex; justify-content: center; margin-top: 40px;
+}
+
 /* ==========================================
    CLASSIC LINE DISTRIBUTION — 9:16
    ========================================== */
