@@ -5379,6 +5379,68 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  
+  function exportGeometry() {
+    const portrait = studio.dataset.visualMode === 'classic';
+    const width = portrait ? 1080 : 1920;
+    const height = portrait ? 1920 : 1080;
+    const previewRect = filmPreview.getBoundingClientRect();
+
+    if (previewRect.width < 1 || previewRect.height < 1) {
+      throw new Error('Preview is not visible.');
+    }
+
+    return {
+      width,
+      height,
+      previewRect,
+      sx: width / previewRect.width,
+      sy: height / previewRect.height,
+      mode: portrait ? 'classic' : 'visual'
+    };
+  }
+
+  
+  async function exportPhotos() {
+    const images = new Map();
+
+    await Promise.all(members.map(async member => {
+      if (!member.photoURL) {
+        images.set(member, null);
+        return;
+      }
+
+      const image = new Image();
+      image.src = member.photoURL;
+
+      try {
+        await image.decode();
+        images.set(member, image);
+      } catch {
+        images.set(member, null);
+      }
+    }));
+
+    return images;
+  }
+
+  
+  function exportPNG(canvas) {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(blob => {
+        if (!blob) {
+          reject(new Error('Cannot render PNG frame.'));
+          return;
+        }
+
+        blob.arrayBuffer()
+          .then(buffer => resolve(new Uint8Array(buffer)))
+          .catch(reject);
+      }, 'image/png');
+    });
+  }
+
+  
   // ==========================================
   // LOAD FFMPEG WASM
   // ==========================================
