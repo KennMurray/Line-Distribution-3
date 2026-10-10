@@ -7,6 +7,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const studio = $('studio-screen');
   const modeForm = $('mode-form');
 
+ 
+const visualPreviewImage = $('visual-preview-image');
+const classicPreviewImage = $('classic-preview-image');
+const visualPreviewPlaceholder = $('visual-preview-placeholder');
+const classicPreviewPlaceholder = $('classic-preview-placeholder');
+
   const memberModal = $('member-modal');
   const memberForm = $('member-form');
   const memberList = $('member-list-items');
@@ -625,6 +631,32 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   // WELCOME SCREEN
   // ==========================================
+
+ 
+  visualPreviewImage.hidden = false;
+  classicPreviewImage.hidden = false;
+
+  visualPreviewPlaceholder.hidden = true;
+  classicPreviewPlaceholder.hidden = true;
+
+ 
+  visualPreviewImage.style.transition = 'filter 0.35s ease';
+  classicPreviewImage.style.transition = 'filter 0.35s ease';
+
+  function updatePreviewBlur() {
+    const selected = modeForm.querySelector(
+      'input[name="visual-mode"]:checked'
+    );
+
+    visualPreviewImage.style.filter =
+      selected?.value === 'visual' ? 'none' : 'blur(6px)';
+
+    classicPreviewImage.style.filter =
+      selected?.value === 'classic' ? 'none' : 'blur(6px)';
+  }
+
+  modeForm.addEventListener('change', updatePreviewBlur);
+  updatePreviewBlur();
 
   modeForm.addEventListener('submit', event => {
     event.preventDefault();
